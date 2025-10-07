@@ -1,86 +1,95 @@
 async function main() {
-  const adapter = await navigator.gpu?.requestAdapter();
-  const device = await adapter?.requestDevice();
-  if (!device) {
-    fail('need a browser that supports WebGPU');
-    return;
-  }
+    const adapter = await navigator?.gpu.requestAdapter();
+    const device = await adapter?.requestDevice();
 
-  // Get a WebGPU context from the canvas and configure it
-  const canvas = document.querySelector('canvas');
-  const context = canvas.getContext('webgpu');
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({
-    device,
-    format: presentationFormat,
-  });
+    if (!device) {
+        fail("This browser does not support Web Gpu");
+        return;
+    }
+    
+    const module = device.createShaderModule({
+        label: 'doubling compute module',
+        code: /* wgsl */ `
+            @group(0) @binding(0) var<storage, read_write> data: array<f32>;
 
-  const module = device.createShaderModule({
-    label: 'our hardcoded red triangle shaders',
-    code: /* wgsl */ `
-      @vertex fn vs(
-        @builtin(vertex_index) vertexIndex : u32
-      ) -> @builtin(position) vec4f {
-        let pos = array(
-          vec2f( 0.5, -0.5),   // bottom right
-          vec2f( 0.0,  0.2),  // top center
-          vec2f(-1.5, -0.2),  // bottom left
-          vec2f( 0.4, -0.4)   // bottom right
-        );
+            @compute @workgroup_size(2) fn computeSomething(
+            @builtin(global_invocation_id) id: vec3u
+            ) {
+            let i = id.x;
+            data[i] = sqrt(data[i]);
+            }
+        `
+    });
 
-        return vec4f(pos[vertexIndex], 0.0, 1.0);
-      }
+    const pipeline = device.createComputePipeline({
+        label: 'doubling compute pipeline',
+        layout: 'auto',
+        compute: {
+            module,
+        },
+    });
 
-      @fragment fn fs() -> @location(0) vec4f {
-        return vec4f(0, 0.4, 0.2, 1);
-      }
-    `,
-  });
+    const input = new Float32Array(Array(65535));
+    for (let i = 0; i < input.length; i++) {
+        input[i] = Math.random() * 100;
+    }
 
-  const pipeline = device.createRenderPipeline({
-    label: 'our hardcoded red triangle pipeline',
-    layout: 'auto',
-    vertex: {
-      module,
-    },
-    fragment: {
-      module,
-      targets: [{ format: presentationFormat }],
-    },
-  });
+    console.log(input)
+    
+    // create a buffer to store the input data and the work buffer
+    const workBuffer = device.createBuffer({
+        label: 'work buffer',
+        size: input.byteLength, 
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
+    });
 
-  const renderPassDescriptor = {
-    label: 'our basic canvas renderPass',
-    colorAttachments: [
-      {
-        // view: <- to be filled out when we render
-        clearValue: [0.3, 0.3, 0.3, 1],
-        loadOp: 'clear',
-        storeOp: 'store',
-      },
-    ],
-  };
+    device.queue.writeBuffer(workBuffer, 0, input);
 
-  function render() {
-    // Get the current texture from the canvas context and
-    // set it as the texture to render to.
-    renderPassDescriptor.colorAttachments[0].view =
-        context.getCurrentTexture().createView();
+    // create a buffer to store the result
+    const resultBuffer = device.createBuffer({
+        label: 'result buffer',
+        size: input.byteLength,
+        usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST
+    });
 
-    // make a command encoder to start encoding commands
-    const encoder = device.createCommandEncoder({ label: 'our encoder' });
+    // create a bind group to bind the work buffer to the pipeline so the shader can access it.
+    // bind group is like a bridge between the shader and the buffer
+    const bindGroup = device.createBindGroup({
+        label: 'bind group for work buffer',
+        layout: pipeline.getBindGroupLayout(0),
+        entries: [{binding: 0, resource: {buffer: workBuffer}}]
+    });
 
-    // make a render pass encoder to encode render specific commands
-    const pass = encoder.beginRenderPass(renderPassDescriptor);
+
+    // create a command encoder to create the compute pass, now we can do the work on the gpu
+    // notebook where we will write down all the gpu commands we want to do
+    const encoder = device.createCommandEncoder({
+        label: 'doubling encoder',
+
+    });
+
+    // starts the compute pass, which is like a section in the command encoder, where we can do compute work
+    const pass = encoder.beginComputePass({
+        label: 'doubling compute pass'
+    });
+    //
+
+
     pass.setPipeline(pipeline);
-    pass.draw(6);  // call our vertex shader 3 times.
+    pass.setBindGroup(0, bindGroup);
+    pass.dispatchWorkgroups(input.length);
     pass.end();
+
+    encoder.copyBufferToBuffer(workBuffer, 0, resultBuffer, 0, resultBuffer.size);
 
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
-  }
 
-  render();
+    await resultBuffer.mapAsync(GPUMapMode.READ);
+    const result = new Float32Array(resultBuffer.getMappedRange());
+
+    console.log(result);
+    resultBuffer.unmap()
 }
 
 function fail(msg) {

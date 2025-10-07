@@ -11,5 +11,9 @@
   "license": "ISC",
   "devDependencies": {
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "dat.gui": "^0.7.9",
+    "stats.js": "^0.17.0"
   }
 }
