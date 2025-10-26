@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WebGPU Demo</title>
+    <meta charset="utf-8">
+    <title>My first three.js app</title>
+    <style>
+      body { margin: 0; }
+    </style>
+    
   </head>
   <body>
-    <!-- <canvas id="gpu-canvas"></canvas>
-    <script type="module" src="./main.js"></script> -->
-    <canvas></canvas>
+    <script async src="https://ga.jspm.io/npm:es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script src="easing.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./js/three.js-master/build/three.module.js",
+          "three/addons/": "./js/three.js-master/examples/jsm/"
+        }
+      }
+</script>
     <script type="module" src="./main.js"></script>
   </body>
 </html>
+    

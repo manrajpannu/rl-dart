@@ -11,5 +11,8 @@
   "license": "ISC",
   "devDependencies": {
     "vite": "^7.1.9"
+  },
+  "dependencies": {
+    "easing-utils": "^1.0.0"
   }
 }
