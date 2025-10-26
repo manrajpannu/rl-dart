@@ -1,72 +1,78 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { Octane } from './octane.js';
+import { physics } from './physicsConfig.js';
 
-class Car {
-
-
-  constructor(scene, modelUrl) {
+export class Car extends THREE.Group {
+  constructor(scene) {
+    super();
     this.scene = scene;
-    this.modelUrl = modelUrl;
-    this.moveSpeed = 0.02;
-    this.rotationSpeed = 1 / 1.5; // rotations per second
-    this.rollSpeed = 1 / 1.11;
+    this.octane = new Octane(scene);
+    this.add(this.octane);
+    this.velocity = new THREE.Vector3();
+    this.rotationVelocity = new THREE.Vector3();
+    this.ballCam = false;
 
-    this.loader = new GLTFLoader();
-    this.pivot = new THREE.Object3D();
-    this.scene.add(this.pivot);
+    this.input = {
+      forward: 0,
+      backward: 0,
+      left: 0,
+      right: 0,
+      pitchUp: 0,
+      pitchDown: 0,
+      rollLeft: 0,
+      rollRight: 0,
+    };
 
-    this.car = null;
+    this.rotationSpeed = physics.car.rotationSpeed;
+    this.airDragCoefficient = physics.car.airDragCoefficient;
+    this.maxRotationSpeed = physics.car.maxRotationSpeed;
 
-    this.loader.load(this.modelUrl, (gltf) => {
-      this.car = gltf.scene;
-      this.car.scale.set(0.012, 0.012, 0.012);
-      this.car.position.set(0, -0.2, 0);
-      this.car.rotation.set(0, Math.PI / 2, 0);
-      this.pivot.add(this.car);
-    });
+    document.addEventListener("keydown", (e) => this.handleKey(e.code, true));
+    document.addEventListener("keyup", (e) => this.handleKey(e.code, false));
   }
 
-  update(deltaTime, keys, mouseButtons) {
-    if (!this.car) return;
-
-    const deltaQuat = new THREE.Quaternion();
-    const xAxis = new THREE.Vector3(1, 0, 0);
-    const yAxis = new THREE.Vector3(0, 1, 0);
-    const zAxis = new THREE.Vector3(0, 0, 1);
-
-    const rotationAmountInRadians = (rps) =>
-      rps * 2 * Math.PI * deltaTime;
-
-    // Pitch
-    if (keys.w) deltaQuat.setFromAxisAngle(xAxis, -rotationAmountInRadians(this.rotationSpeed));
-    if (keys.s) deltaQuat.setFromAxisAngle(xAxis, rotationAmountInRadians(this.rotationSpeed));
-
-    // Yaw
-    if (keys.a) deltaQuat.setFromAxisAngle(yAxis, rotationAmountInRadians(this.rotationSpeed));
-    if (keys.d) deltaQuat.setFromAxisAngle(yAxis, -rotationAmountInRadians(this.rotationSpeed));
-
-    // Roll
-    if (keys.ArrowLeft) deltaQuat.setFromAxisAngle(zAxis, rotationAmountInRadians(this.rollSpeed));
-    if (keys.ArrowRight) deltaQuat.setFromAxisAngle(zAxis, -rotationAmountInRadians(this.rollSpeed));
-
-    this.pivot.quaternion.multiply(deltaQuat);
-
-    // Move forward on left-click
-    if (mouseButtons.left) {
-      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.pivot.quaternion);
-      this.pivot.position.addScaledVector(forward, this.moveSpeed);
+  handleKey(code, isDown) {
+    switch (code) {
+      case 'KeyW': this.input.pitchDown = isDown ? 1 : 0; break;
+      case 'KeyS': this.input.pitchUp = isDown ? 1 : 0; break;
+      case 'KeyA': this.input.left = isDown ? 1 : 0; break;
+      case 'KeyD': this.input.right = isDown ? 1 : 0; break;
+      case 'ArrowUp': this.input.forward = isDown ? 1 : 0; break;
+      case 'ArrowDown': this.input.backward = isDown ? 1 : 0; break;
+      case 'KeyQ': this.input.rollLeft = isDown ? 1 : 0; break;
+      case 'KeyE': this.input.rollRight = isDown ? 1 : 0; break;
     }
   }
 
-  getPosition() {
-    return this.pivot.position.clone();
-  }
+applyInputs(dt) {
+    console.log(this.rotationVelocity)
+  // --- TARGET INPUTS ---
+  const yawInput   = this.input.right - this.input.left;         // + right, - left
+  const pitchInput = this.input.pitchUp - this.input.pitchDown;  // + up, - down
+  const rollInput  = this.input.rollRight - this.input.rollLeft; // + right, - left
 
-  getForward() {
-    return new THREE.Vector3(0, 0, -1).applyQuaternion(this.pivot.quaternion);
-  }
+  // --- Apply rotational acceleration ---
+  this.rotationVelocity.x += pitchInput * this.rotationSpeed * dt; // Pitch
+  this.rotationVelocity.y += yawInput   * this.rotationSpeed * dt; // Yaw
+  this.rotationVelocity.z += rollInput  * this.rotationSpeed * dt; // Roll
 
-  getUp() {
-    return new THREE.Vector3(0, 1, 0).applyQuaternion(this.pivot.quaternion);
+  if (yawInput === 0 && pitchInput === 0 && rollInput === 0) {
+    this.rotationVelocity.multiplyScalar(this.airDragCoefficient);
+ }
+  // --- Apply friction / drag ---
+
+  // --- Clamp max rotation speed ---
+  this.rotationVelocity.x = THREE.MathUtils.clamp(this.rotationVelocity.x, -this.maxRotationSpeed, this.maxRotationSpeed);
+  this.rotationVelocity.y = THREE.MathUtils.clamp(this.rotationVelocity.y, -this.maxRotationSpeed, this.maxRotationSpeed);
+  this.rotationVelocity.z = THREE.MathUtils.clamp(this.rotationVelocity.z, -this.maxRotationSpeed, this.maxRotationSpeed);
+
+  // --- Apply rotations ---
+  this.rotateX(this.rotationVelocity.x * dt); // pitch
+  this.rotateY(-this.rotationVelocity.y * dt); // yaw (negative = intuitive right/left)
+  this.rotateZ(-this.rotationVelocity.z * dt); // roll (negative = intuitive roll direction)
+}
+
+  update(dt) {
+    this.position.addScaledVector(this.velocity, dt);
   }
 }
