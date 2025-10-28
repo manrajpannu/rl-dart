@@ -14,7 +14,6 @@ export class Octane extends THREE.Group {
     this.loader = new GLTFLoader();
     this.car = null;
 
-    // --- Input matrix (stores all control states) ---
     this.input = {
       forward: false,
       backward: false,
@@ -66,7 +65,6 @@ export class Octane extends THREE.Group {
     }
   }
 
-  // --- Applies the input matrix to the car each frame ---
   applyInputs(deltaTime) {
     if (!this.car) return;
 

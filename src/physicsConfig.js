@@ -11,11 +11,19 @@ export const physics = {
         acceleration: 20,
         brakingForce: 50,
         acceleration: 20.0,
-        rotationSpeed: 6.0,
+        rotationSpeed: 21.0,
+        pitchRotationSpeed: 40.0,
         airDragCoefficient: 0.975,
-        maxRotationSpeed: 4.5
+        maxRotationSpeed: 10.0,
+        maxRollSpeed: 10.0,
+        
 
-    }
+    },
+    ball: {
+        timeLimit: 1.0,
+        scale: 1,
+    },
+    world:{gameSpeed:1.0}
 
 
 }
