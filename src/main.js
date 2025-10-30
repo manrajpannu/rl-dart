@@ -53,7 +53,6 @@ scene.add(car);
 
 let lastTime = performance.now();
 
-
 function animate() {
   requestAnimationFrame(animate);
   const currentTime = performance.now();

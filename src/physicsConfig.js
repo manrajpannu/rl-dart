@@ -16,6 +16,7 @@ export const physics = {
         airDragCoefficient: 0.975,
         maxRotationSpeed: 10.0,
         maxRollSpeed: 10.0,
+            
     },
     camera: {
         fov: 75,

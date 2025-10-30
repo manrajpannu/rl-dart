@@ -26,7 +26,7 @@ export function createUI(car, ball) {
     visualsFolder.add( car, 'showAxisOfRotationLine').name('Show Axis of Rotation');
     visualsFolder.add( car, 'showTorus').name('Show Helper Donut');
 
-    physicsFolder.add( {rotationPreset:''}, 'rotationPreset', [ 'default', 'snappy' ] ).name('Rotation Preset').onChange((preset) => {
+    physicsFolder.add( car, 'rotationPreset', [ 'default', 'snappy' ] ).name('Rotation Preset').onChange((preset) => {
         switch (preset) {
             case 'default':
                 car.rotationSpeed = 21

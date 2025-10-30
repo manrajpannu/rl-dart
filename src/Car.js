@@ -33,6 +33,7 @@ export class Car extends THREE.Group {
     this.showLine = false;
     this.showAxisOfRotationLine = false;
     this.showTorus = false;
+    this.rotationPreset = 'default';
     this.input = {
       forward: 0,
       backward: 0,
@@ -74,15 +75,6 @@ export class Car extends THREE.Group {
     this.Up = new THREE.Vector3(0, 1, 0);
     this.forward = new THREE.Vector3(0, 0, -1);
 
-    // {
-    //   const geometry = new THREE.TorusGeometry( 0.65, 0.02, 10, 23 ); 
-    //   const material = new THREE.MeshBasicMaterial( { color: 0xffff00 } ); 
-    //   const torus = new THREE.Mesh( geometry, material ); 
-    //   torus.position.set(0,0.5,-0.5)
-    //   torus.rotateX(degToRad(45));
-    //   this.add( torus );
-      
-    // }
   }
 
   handleKey(code, isDown) {
