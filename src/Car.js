@@ -8,6 +8,11 @@ const material = new THREE.LineBasicMaterial({
   color: 0x0000ff,
 });
 
+const geom = new THREE.TorusGeometry(0.5, 0.02, 12, 12);
+const mat = new THREE.MeshStandardMaterial({ color: 'purple', opacity: 0.7, transparent: true });
+
+const torus = new THREE.Mesh(geom, mat);
+
 function  weightedLerp(current, target, weights, dt) {
   // weights = how quickly each axis blends (higher = faster)
   // dt = delta time in seconds (e.g., from clock.getDelta())
@@ -211,16 +216,7 @@ export class Car extends THREE.Group {
       this._axisTorus = null;
     }
 
-    // torus geometry params (tweak as needed)
-    const ringRadius = 0.5;   // distance from torus center to tube center
-    const tubeRadius = 0.02;  // tube thickness
-    const radialSegs = 6;
-    const tubularSegs = 6;
 
-    const geom = new THREE.TorusGeometry(ringRadius, tubeRadius, radialSegs, tubularSegs);
-    const mat = new THREE.MeshStandardMaterial({ color: 'purple', opacity: 0.7, transparent: true });
-
-    const torus = new THREE.Mesh(geom, mat);
 
     // By default we assume the torus's ring-plane normal is +Y.
     // Compute quaternion to rotate +Y to the axis direction.
