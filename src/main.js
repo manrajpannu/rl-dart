@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/Addons.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { Ball } from './Ball';
 import { Map } from './Map';
@@ -46,7 +45,7 @@ scene.add(ball);
 
 const map = new Map(40);
 map.gen();
-map.position.y = -3;
+map.position.y = -5;
 scene.add(map);
 
 const car = new Car(scene);

@@ -16,12 +16,18 @@ export const physics = {
         airDragCoefficient: 0.975,
         maxRotationSpeed: 10.0,
         maxRollSpeed: 10.0,
-        
-
+    },
+    camera: {
+        fov: 75,
+        distance: 6,
+        height: 4,
     },
     ball: {
-        timeLimit: 1.0,
+        hitWindowDuration: 1.0,
+        chaseTimeout: 2.0,
         scale: 1,
+        timeout: false,
+        randomizerPreset: 'default'
     },
     world:{gameSpeed:1.0}
 
