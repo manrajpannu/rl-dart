@@ -8,10 +8,6 @@ const material = new THREE.LineBasicMaterial({
   color: 0x0000ff,
 });
 
-const geom = new THREE.TorusGeometry(0.5, 0.02, 12, 12);
-const mat = new THREE.MeshStandardMaterial({ color: 'purple', opacity: 0.7, transparent: true });
-
-const torus = new THREE.Mesh(geom, mat);
 
 function  weightedLerp(current, target, weights, dt) {
   // weights = how quickly each axis blends (higher = faster)
@@ -80,6 +76,27 @@ export class Car extends THREE.Group {
     this.Up = new THREE.Vector3(0, 1, 0);
     this.forward = new THREE.Vector3(0, 0, -1);
 
+    // Create rotation line once
+    const lineGeometry = new THREE.BufferGeometry();
+    // Allocate buffer for 2 points (start and end)
+    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    this._rotationLine = new THREE.Line(
+      lineGeometry,
+      new THREE.LineBasicMaterial({ color: 0x00ff00 })
+    );
+    this._rotationLine.visible = false;
+    this.add(this._rotationLine);
+
+    // Create torus once
+    this._torusGeometry = new THREE.TorusGeometry(0.5, 0.02, 32, 32);
+    this._torusMaterial = new THREE.MeshStandardMaterial({ 
+      color: 'purple', 
+      opacity: 0.7, 
+      transparent: true 
+    });
+    this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
+    this.torus.visible = false;
+    this.add(this.torus);
   }
 
   handleKey(code, isDown) {
@@ -185,15 +202,21 @@ export class Car extends THREE.Group {
     }
 
     // --- Show the axis of rotation ---
-    if (this.showAxisOfRotationLine) {
-      if (this.rotationLine) this.remove(this.rotationLine);
-      const material = new THREE.LineBasicMaterial({ color: 0x00ff00 });
-      const geometry = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        axis.clone().multiplyScalar(2)
-      ]);
-      this.rotationLine = new THREE.Line(geometry, material);
-      this.add(this.rotationLine);
+    if (this._rotationLine) {
+      // Update line vertices
+      const positions = this._rotationLine.geometry.attributes.position.array;
+      // Start point
+      positions[0] = 0;
+      positions[1] = 0;
+      positions[2] = 0;
+      // End point
+      const end = axis.multiplyScalar(2);
+      positions[3] = end.x;
+      positions[4] = end.y;
+      positions[5] = end.z;
+      
+      this._rotationLine.geometry.attributes.position.needsUpdate = true;
+      this._rotationLine.visible = this.showAxisOfRotationLine;
       if (this.showTorus) {
         this.showAxisTorus(axis);
       }
@@ -202,47 +225,33 @@ export class Car extends THREE.Group {
   }
 
   showAxisTorus(axis) {
+    if (!this.torus) return;
+    
     // ensure axis is normalized (defensive)
     const axisDir = axis.clone().normalize();
-
-    // compute center point 2 units along the axis
-    const center = axisDir.clone().multiplyScalar(0.8);
-
-    // remove old torus if present
-    if (this._axisTorus) {
-      this.remove(this._axisTorus);
-      if (this._axisTorus.geometry) this._axisTorus.geometry.dispose();
-      if (this._axisTorus.material) this._axisTorus.material.dispose();
-      this._axisTorus = null;
-    }
-
-
-
-    // By default we assume the torus's ring-plane normal is +Y.
-    // Compute quaternion to rotate +Y to the axis direction.
+    
+    // compute center point along the axis
+    const center = axisDir.multiplyScalar(0.8);
+    
+    // By default torus ring-plane normal is +Y
+    // Compute quaternion to rotate +Y to axis direction
     const up = new THREE.Vector3(0, 1, 0);
     const q = new THREE.Quaternion();
-    // handle near-parallel / anti-parallel safely:
+    
+    // handle parallel cases
     if (axisDir.dot(up) > 0.9999) {
       q.identity();
     } else if (axisDir.dot(up) < -0.9999) {
-      // 180° rotation: pick any perpendicular axis (X)
       q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
     } else {
       q.setFromUnitVectors(up, axisDir);
     }
 
-    
-    torus.position.copy(center);
-    torus.quaternion.copy(q);
-
-    // optional: slightly offset the torus so its ring center sits exactly on the axis
-    // (not needed here because center already sits on axis)
-
-    // store and add
-    torus.rotateX(degToRad(90)); // align torus tube with axis
-    this._axisTorus = torus;
-    this.add(torus);
+    // Update transform
+    this.torus.position.copy(center);
+    this.torus.quaternion.copy(q);
+    this.torus.rotateX(degToRad(90));  // align with axis
+    this.torus.visible = this.showTorus;
   }
 
     update(dt) {

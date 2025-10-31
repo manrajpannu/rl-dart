@@ -53,8 +53,12 @@ scene.add(car);
 
 let lastTime = performance.now();
 // Fixed timestep settings
-const FIXED_DT = 1.0 / 144.0; // 60 Hz physics
+const FIXED_DT = 1.0 / 136.0; 
 let accumulator = 0;
+
+//create a 25x25 cube to act as world
+// render the inside of the cube
+
 
 function animate() {
   requestAnimationFrame(animate);
