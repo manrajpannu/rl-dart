@@ -44,14 +44,14 @@ export function createUI(car, ball) {
     physicsFolder.add( car, 'maxRotationSpeed', 0, 100).name('Max Rotation Speed')
     const ballFolder = gui.addFolder('Ball');
     ballFolder.add(physics.ball, 'randomizerPreset', ['default', 'vertical']).name("Randomizer Preset")
+    ballFolder.add(physics.ball, 'scale', 0, 5).name('Ball Scale').onChange( (value) => {
+        ball.updateBallScale(value);
+    });
     ballFolder.add( physics.ball, 'hitWindowDuration', 0.1, 5 ).name('Hit Window Duration (s)');
     const timeOutFolder = ballFolder.addFolder('Timeout');
     timeOutFolder.add( physics.ball, 'timeout' ).name('Timeout');
     timeOutFolder.add( physics.ball, 'chaseTimeout', 0.1, 5 ).name('Chase Timeout (s)');
 
-    // ballFolder.add(physics.ball, 'scale', 0, 5).name('Ball Scale').onChange( (value) => {
-    //     ball.updateBallScale(value);
-    // });
     const camFolder = gui.addFolder('Camera');
 
     camFolder.add( car, 'ballCam').name('Ball Camera');

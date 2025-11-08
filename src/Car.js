@@ -88,15 +88,18 @@ export class Car extends THREE.Group {
     this.add(this._rotationLine);
 
     // Create torus once
-    this._torusGeometry = new THREE.TorusGeometry(0.5, 0.02, 32, 32);
-    this._torusMaterial = new THREE.MeshStandardMaterial({ 
+    this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 32, 32);
+    this._torusMaterial = new THREE.MeshBasicMaterial({ 
       color: 'purple', 
       opacity: 0.7, 
       transparent: true 
     });
     this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
     this.torus.visible = false;
+    
+    this.torus.rotation.x = degToRad(90);
     this.add(this.torus);
+
   }
 
   handleKey(code, isDown) {
@@ -200,7 +203,7 @@ export class Car extends THREE.Group {
     } else {
       axis.set(0, 1, 0); // default if angle ≈ 0
     }
-
+    
     // --- Show the axis of rotation ---
     if (this._rotationLine) {
       // Update line vertices
@@ -218,39 +221,41 @@ export class Car extends THREE.Group {
       this._rotationLine.geometry.attributes.position.needsUpdate = true;
       this._rotationLine.visible = this.showAxisOfRotationLine;
       if (this.showTorus) {
-        this.showAxisTorus(axis);
+        const axisDir = axis.clone().normalize();
+        const alignment = Math.abs(this.forward.dot(axisDir));
+        // 
+        const radius = Math.sqrt(1 - alignment * alignment);
+        this.showAxisTorus(axisDir, radius*1.5);
       }
     }
-    if (!this.showAxisOfRotationLine && this.rotationLine) this.remove(this.rotationLine);
+    if (!this.showAxisOfRotationLine && this._rotationLine) this._rotationLine.visible = false;
   }
 
-  showAxisTorus(axis) {
+  showAxisTorus(axis, scale) {
     if (!this.torus) return;
-    
-    // ensure axis is normalized (defensive)
+    // axis is expected to be a unit vector in local/car space
     const axisDir = axis.clone().normalize();
-    
-    // compute center point along the axis
-    const center = axisDir.multiplyScalar(0.8);
-    
-    // By default torus ring-plane normal is +Y
-    // Compute quaternion to rotate +Y to axis direction
-    const up = new THREE.Vector3(0, 1, 0);
-    const q = new THREE.Quaternion();
-    
-    // handle parallel cases
-    if (axisDir.dot(up) > 0.9999) {
-      q.identity();
-    } else if (axisDir.dot(up) < -0.9999) {
-      q.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+
+    // compute center point along the axis (offset from car origin)
+    const center = axisDir.clone().multiplyScalar(0.55);
+// --- Orient torus so its ring-plane normal (+Y) aligns with axisDir ---
+    const torusUp = new THREE.Vector3(0, 0, 1);
+    const torusQuat = new THREE.Quaternion();
+    if (torusUp.dot(axisDir) > 0.9999) {
+      torusQuat.identity();
+    } else if (torusUp.dot(axisDir) < -0.9999) {
+      torusQuat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
     } else {
-      q.setFromUnitVectors(up, axisDir);
+      torusQuat.setFromUnitVectors(torusUp, axisDir);
+    }
+    this.torus.position.copy(center);
+    this.torus.quaternion.copy(torusQuat);
+
+    // scale torus (scale parameter expected to be radius-like)
+    if (typeof scale === 'number' && isFinite(scale)) {
+      this.torus.scale.setScalar(Math.max(0.01, scale));
     }
 
-    // Update transform
-    this.torus.position.copy(center);
-    this.torus.quaternion.copy(q);
-    this.torus.rotateX(degToRad(90));  // align with axis
     this.torus.visible = this.showTorus;
   }
 
