@@ -6,22 +6,16 @@ import { Car } from './car';
 import { createUI } from './Ui';
 import { physics } from './physicsConfig';
 
+const container = document.getElementById('three-container');
+
 const stats = new Stats()
-document.body.append(stats.dom);
+container.append(stats.dom);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor("darkgrey")
-document.body.appendChild(renderer.domElement);
-
-// const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight);
-// camera.position.set(-8,8,-8);
-// camera.lookAt(0,0,0);
-
-// const controls = new OrbitControls(camera, renderer.domElement)
-// controls.target.set(0,0,0)
-// controls.update()
+container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 
@@ -52,36 +46,27 @@ const car = new Car(scene);
 scene.add(car);
 
 let lastTime = performance.now();
-// Fixed timestep settings
 const FIXED_DT = 1.0 / 136.0; 
 let accumulator = 0;
 
-//create a 25x25 cube to act as world
-// render the inside of the cube
 
 
 function animate() {
   requestAnimationFrame(animate);
   const currentTime = performance.now();
-  // frame time in seconds, scaled by game speed
   let frameTime = ((currentTime - lastTime) / 1000) * physics.world.gameSpeed;
   lastTime = currentTime;
 
   accumulator += frameTime;
 
-  // run fixed-size physics updates
   while (accumulator >= FIXED_DT) {
-    // physics tick
     ball.intersectsLine(car.getForwardLine(), FIXED_DT);
     car.applyInputs(FIXED_DT);
-    // allow car to advance any physics/position state if implemented
-    if (typeof car.update === 'function') car.update(FIXED_DT);
 
     accumulator -= FIXED_DT;
   }
 
-  // Render (camera smoothing can use frameTime or interpolation if desired)
-  const renderDt = frameTime; // use frameTime for camera lerp to keep responsiveness
+  const renderDt = frameTime; 
   car.updateCamera(ball.position, renderDt);
 
   renderer.render(scene, car.camera);

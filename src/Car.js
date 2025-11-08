@@ -262,7 +262,7 @@ export class Car extends THREE.Group {
     this.torus.visible = this.showTorus;
   }
 
-    update(dt) {
+  update(dt) {
     this.position.addScaledVector(this.velocity, dt);
   }
 
