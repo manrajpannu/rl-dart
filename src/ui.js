@@ -1,6 +1,6 @@
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
 import {physics} from './physicsConfig.js'
-
+import { CAR_MODELS } from './carModel.js';
 
 function loadPreset(gui) {
         const presetString = localStorage.getItem('gui-preset');
@@ -25,6 +25,9 @@ export function createUI(car, ball) {
     }   );
     visualsFolder.add( car, 'showAxisOfRotationLine').name('Show Axis of Rotation');
     visualsFolder.add( car, 'showTorus').name('Show Helper Donut');
+    // visualsFolder.add({}, '', ['Octane', 'Fennec']).name('Car Model').onChange( (modelKey) => {
+    //     car.switchCarModel(modelKey);
+    // } );
 
     physicsFolder.add( car, 'rotationPreset', [ 'default', 'snappy' ] ).name('Rotation Preset').onChange((preset) => {
         switch (preset) {

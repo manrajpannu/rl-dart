@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { Octane } from "./octane.js";
+import { CarModel, CAR_MODELS } from "./carModel.js";
 import { physics } from "./physicsConfig.js";
 import { degToRad } from "three/src/math/MathUtils.js";
 
@@ -26,8 +26,11 @@ export class Car extends THREE.Group {
   constructor(scene) {
     super();
     this.scene = scene;
-    this.octane = new Octane(scene);
-    this.add(this.octane);
+    this.carModels = new Map();
+    this.currentModel = null;
+    
+    this.loadCarModel(CAR_MODELS.Octane);
+    
     this.velocity = new THREE.Vector3();
     this.rotationVelocity = new THREE.Vector3();
     this.ballCam = true;
@@ -96,7 +99,7 @@ export class Car extends THREE.Group {
     });
     this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
     this.torus.visible = false;
-    
+
     this.torus.rotation.x = degToRad(90);
     this.add(this.torus);
 
@@ -310,7 +313,6 @@ export class Car extends THREE.Group {
 
     this.ballCam ?  this.camera.position.lerp(desiredCameraPos, dt) :  weightedLerp(this.camera.position, desiredCameraPos, weights, dt)
     
-
     const smoothLookAt = new THREE.Vector3().lerpVectors(
       this.LookAt,
       lookAt,
@@ -319,5 +321,38 @@ export class Car extends THREE.Group {
     this.camera.lookAt(smoothLookAt);
   }
 
+  loadCarModel(modelConfig) {
+    if (!this.carModels.has(modelConfig.name)) {
+      const model = new CarModel(this.scene, modelConfig);
+      this.carModels.set(modelConfig.name, model);
+      this.add(model);
+      
+      // If this is the first model, set it as current
+      if (!this.currentModel) {
+        this.currentModel = modelConfig.name;
+        return true;
+      }
+    }
+    return false;
+  }
 
+  switchCarModel(modelName) {
+    if (!this.carModels.has(modelName)) {
+      console.warn(`Car model ${modelName} not loaded. Loading it now...`);
+      const modelConfig = Object.values(CAR_MODELS).find(config => config.name === modelName);
+      if (!modelConfig) {
+        console.error(`Car model ${modelName} not found in CAR_MODELS`);
+        return false;
+      }
+      this.loadCarModel(modelConfig);
+    }
+
+    if (this.currentModel) {
+      this.carModels.get(this.currentModel).setVisible(false);
+    }
+
+    this.carModels.get(modelName).setVisible(true);
+    this.currentModel = modelName;
+    return true;
+  }
 }

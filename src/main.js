@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
-import { Ball } from './Ball';
-import { Map } from './Map';
-import { Car } from './Car';
+import { Ball } from './ball';
+import { Map } from './map';
+import { Car } from './car';
 import { createUI } from './Ui';
 import { physics } from './physicsConfig';
 
