@@ -29,14 +29,15 @@ export class Car extends THREE.Group {
     this.carModels = new Map();
     this.currentModel = null;
     
-    this.loadCarModel(CAR_MODELS.Octane);
+    this.loadCarModel(CAR_MODELS[physics.car.body]);
     
     this.velocity = new THREE.Vector3();
     this.rotationVelocity = new THREE.Vector3();
     this.ballCam = true;
+    this.ballPosition = new THREE.Vector3();
     this.showLine = false;
-    this.showAxisOfRotationLine = false;
-    this.showTorus = false;
+    this.showAxisOfRotationLine = true;
+    this.showTorus = true;
     this.rotationPreset = 'default';
     this.input = {
       forward: 0,
@@ -203,8 +204,11 @@ export class Car extends THREE.Group {
         m3.elements[3] - m3.elements[1]
       );
       axis.normalize();
+
+      // ✅ Ensure axis points forward (positive Z direction)
+      if (axis.z > 0) axis.negate();
     } else {
-      axis.set(0, 1, 0); // default if angle ≈ 0
+      axis.set(0, 0, 1); // default forward axis
     }
     
     // --- Show the axis of rotation ---
@@ -228,22 +232,23 @@ export class Car extends THREE.Group {
         const alignment = Math.abs(this.forward.dot(axisDir));
         // 
         const radius = Math.sqrt(1 - alignment * alignment);
-        this.showAxisTorus(axisDir, radius*1.5);
+        this.createHelperTorus(axisDir, radius*1.5*physics.car.torusBaseScale);
+      } else {
+        this.torus.visible = false;
+        this.torus.scale.setScalar(0);
       }
     }
     if (!this.showAxisOfRotationLine && this._rotationLine) this._rotationLine.visible = false;
   }
 
-  showAxisTorus(axis, scale) {
+  createHelperTorus(axis, scale) {
     if (!this.torus) return;
-    // axis is expected to be a unit vector in local/car space
     const axisDir = axis.clone().normalize();
 
-    // compute center point along the axis (offset from car origin)
     const center = axisDir.clone().multiplyScalar(0.55);
-// --- Orient torus so its ring-plane normal (+Y) aligns with axisDir ---
     const torusUp = new THREE.Vector3(0, 0, 1);
     const torusQuat = new THREE.Quaternion();
+
     if (torusUp.dot(axisDir) > 0.9999) {
       torusQuat.identity();
     } else if (torusUp.dot(axisDir) < -0.9999) {
@@ -254,7 +259,6 @@ export class Car extends THREE.Group {
     this.torus.position.copy(center);
     this.torus.quaternion.copy(torusQuat);
 
-    // scale torus (scale parameter expected to be radius-like)
     if (typeof scale === 'number' && isFinite(scale)) {
       this.torus.scale.setScalar(Math.max(0.01, scale));
     }
@@ -322,12 +326,12 @@ export class Car extends THREE.Group {
   }
 
   loadCarModel(modelConfig) {
+    console.log('Loading car model:', modelConfig.name);
     if (!this.carModels.has(modelConfig.name)) {
       const model = new CarModel(this.scene, modelConfig);
       this.carModels.set(modelConfig.name, model);
       this.add(model);
       
-      // If this is the first model, set it as current
       if (!this.currentModel) {
         this.currentModel = modelConfig.name;
         return true;
@@ -337,6 +341,8 @@ export class Car extends THREE.Group {
   }
 
   switchCarModel(modelName) {
+    if (this.currentModel === modelName) return true;
+    
     if (!this.carModels.has(modelName)) {
       console.warn(`Car model ${modelName} not loaded. Loading it now...`);
       const modelConfig = Object.values(CAR_MODELS).find(config => config.name === modelName);
@@ -346,13 +352,42 @@ export class Car extends THREE.Group {
       }
       this.loadCarModel(modelConfig);
     }
-
+    
     if (this.currentModel) {
-      this.carModels.get(this.currentModel).setVisible(false);
+      this.carModels.get(this.currentModel).visible = false;
     }
-
-    this.carModels.get(modelName).setVisible(true);
+    
+    this.carModels.get(modelName).visible = true;
     this.currentModel = modelName;
     return true;
+  }
+
+  checkFacingBall(ballPos) {
+    // Get car world position
+    const carPos = new THREE.Vector3();
+    this.getWorldPosition(carPos);
+
+
+    
+    // vector from car → ball
+    const toBall = new THREE.Vector3().subVectors(carPos, ballPos).normalize();
+
+    // car’s forward vector (based on current rotation)
+    const forward = new THREE.Vector3(0, 0, 1).applyEuler(this.rotation).normalize();
+
+    // --- YAW (XZ plane) ---
+    const forwardXZ = new THREE.Vector3(forward.x, 0, forward.z).normalize();
+    const toBallXZ = new THREE.Vector3(toBall.x, 0, toBall.z).normalize();
+    const yawDiff = Math.atan2(toBallXZ.x, toBallXZ.z) - Math.atan2(forwardXZ.x, forwardXZ.z);
+
+    // --- PITCH (YZ plane) ---
+    const forwardYZ = new THREE.Vector3(0, forward.y, forward.z).normalize();
+    const toBallYZ = new THREE.Vector3(0, toBall.y, toBall.z).normalize();
+    const pitchDiff = Math.atan2(toBallYZ.y, toBallYZ.z) - Math.atan2(forwardYZ.y, forwardYZ.z);
+
+    // console log yaw and pitch diff in degrees
+    console.log(THREE.MathUtils.radToDeg(yawDiff), THREE.MathUtils.radToDeg(pitchDiff));
+
+    return { yawDiff, pitchDiff };
   }
 }

@@ -11,7 +11,6 @@ function loadPreset(gui) {
         console.log('Preset loaded from localStorage');
 }
 
-const container = document.getElementById('three-container');
 
 export function createUI(car, ball) {
     const gui = new GUI();
@@ -26,10 +25,9 @@ export function createUI(car, ball) {
         car.updateVisibility();
     }   );
     visualsFolder.add( car, 'showAxisOfRotationLine').name('Show Axis of Rotation');
-    visualsFolder.add( car, 'showTorus').name('Show Helper Donut');
-    visualsFolder.add({}, '', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => {
-        car.switchCarModel(modelKey);
-    } );
+    visualsFolder.add( car, 'showTorus').name('Show Helper Donut')
+    visualsFolder.add( physics.car, 'torusBaseScale', 0, 5 ).name('Donut Scale');
+    visualsFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
 
     physicsFolder.add( car, 'rotationPreset', [ 'default', 'snappy' ] ).name('Rotation Preset').onChange((preset) => {
         switch (preset) {

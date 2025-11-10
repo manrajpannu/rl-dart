@@ -6,6 +6,7 @@ export const physics = {
     dragCoefficient: 0.47,
     rollingResistance: 0.015,
     car: {
+        body: 'octane',
         mass: 1500,
         maxSpeed: 2300,
         acceleration: 20,
@@ -16,6 +17,7 @@ export const physics = {
         airDragCoefficient: 0.975,
         maxRotationSpeed: 10.0,
         maxRollSpeed: 10.0,
+        torusBaseScale: 1.0,
             
     },
     camera: {

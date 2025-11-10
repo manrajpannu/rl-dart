@@ -56,6 +56,7 @@ export class Ball extends THREE.Group {
     }
     
     updateBallScale(newScale) {
+        if (!this.ball) return;
         this.ball.scale.set(newScale, newScale, newScale);
         this.boundingSphere.radius = newScale;
         this.sphere.scale.set(newScale + 0.05, newScale + 0.05, newScale + 0.05);

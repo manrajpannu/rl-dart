@@ -12,8 +12,8 @@ export class CarModel extends THREE.Group {
         this.loader.load(this.modelUrl, (gltf) => {
             this.model = gltf.scene;
             this.model.scale.set(modelConfig.scale, modelConfig.scale, modelConfig.scale);
-            this.model.position.set(0, -0.2, 0);
-            this.model.rotation.set(0, Math.PI / 2, 0);
+            this.model.position.set(modelConfig.position.x, modelConfig.position.y, modelConfig.position.z);
+            this.model.rotation.set(modelConfig.rotation.x, modelConfig.rotation.y, modelConfig.rotation.z);
             this.add(this.model);
         });
     }
@@ -26,14 +26,32 @@ export class CarModel extends THREE.Group {
 }
 
 export const CAR_MODELS = {
-    Octane: {
-        name: 'Octane',
+    octane: {
+        name: 'octane',
         modelUrl: 'resources/models/octane/scene.gltf',
-        scale: 0.012
+        scale: 0.012,
+        position: { x: 0, y: -0.2, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 }
     },
-    Fennec: {
-        name: 'Fennec',
+    fennec: {
+        name: 'fennec',
         modelUrl: 'resources/models/fennec/scene.gltf',
-        scale: 0.012
+        scale: 0.012,
+        position: { x: 0, y: -0.2, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 }
+    },
+    dominus: {
+        name: 'dominus',
+        modelUrl: 'resources/models/dominus/scene.gltf',
+        scale: 0.012,
+        position: { x: 0, y: -0.2, z: 0 },
+        rotation: { x: 0, y: Math.PI / 2, z: 0 }
+    },
+    lambo: {
+        name: 'lambo',
+        modelUrl: 'resources/models/lambo/scene.gltf',
+        scale: 0.15,
+        position: { x: 0.28, y: 0.03, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 }
     }
 };

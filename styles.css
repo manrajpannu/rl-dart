@@ -22,6 +22,16 @@ body {
   overflow: hidden;
 }
 
+#three-container > .stats {
+  position: absolute !important;
+  top: 10px; /* move inside 3D container */
+  left: 10px;
+}
+
+.stats canvas {
+  display: block;
+}
+
 /* Place lil-gui controls inside the three-container */
 #three-container .lil-root {
   position: absolute !important;
@@ -73,4 +83,14 @@ body {
 @media (max-width: 420px) {
   body { padding-top: 32px; }
   #top-header { height: 32px; font-size: 12px; }
+}
+
+.idealAdjustment {
+  /* width: 120px;
+  height: 120px; */
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  pointer-events: none;
+  z-index: 10002;
 }
