@@ -28,28 +28,28 @@ export class CarModel extends THREE.Group {
 export const CAR_MODELS = {
     octane: {
         name: 'octane',
-        modelUrl: 'resources/models/octane/scene.gltf',
+        modelUrl: 'public/models/octane/scene.gltf',
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }
     },
     fennec: {
         name: 'fennec',
-        modelUrl: 'resources/models/fennec/scene.gltf',
+        modelUrl: 'public/models/fennec/scene.gltf',
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }
     },
     dominus: {
         name: 'dominus',
-        modelUrl: 'resources/models/dominus/scene.gltf',
+        modelUrl: 'public/models/dominus/scene.gltf',
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }
     },
     lambo: {
         name: 'lambo',
-        modelUrl: 'resources/models/lambo/scene.gltf',
+        modelUrl: 'public/models/lambo/scene.gltf',
         scale: 0.15,
         position: { x: 0.28, y: 0.03, z: 0 },
         rotation: { x: 0, y: 0, z: 0 }

@@ -110,7 +110,7 @@ rocketcar/
 │   ├── Map.js
 │   ├── Ui.js
 │   └── ...
-├── resources/
+├── public/
 │   └── models/
 │       └── octane/
 │           └── ...
