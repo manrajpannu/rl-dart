@@ -29,13 +29,6 @@ export class Map extends THREE.Group {
         const mesh = new THREE.Mesh( planeGeo, planeMat );
         mesh.rotation.x = Math.PI * - .5;
         this.add( mesh );
-        
-        
-        const innerGeometry = new THREE.BoxGeometry(40, 40, 40);
-        // const innerGeometry = new THREE.SphereGeometry(50, 100, 100);
-        const innerMaterial = new THREE.MeshStandardMaterial({ color: 0x0000ff, side: THREE.BackSide });
-        const innerCube = new THREE.Mesh(innerGeometry, planeMat);
-        // this.add(innerCube);
     }
 
 

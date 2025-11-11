@@ -3,11 +3,10 @@ import { CarModel, CAR_MODELS } from "./carModel.js";
 import { physics } from "./physicsConfig.js";
 import { degToRad } from "three/src/math/MathUtils.js";
 
-
-const material = new THREE.LineBasicMaterial({
-  color: 0x0000ff,
-});
-
+// Deadzone helper
+const applyDeadzone = (value, deadzone = 0.15) => {
+  return Math.abs(value) < deadzone ? 0 : value;
+};
 
 function  weightedLerp(current, target, weights, dt) {
   // weights = how quickly each axis blends (higher = faster)
@@ -34,20 +33,17 @@ export class Car extends THREE.Group {
     this.velocity = new THREE.Vector3();
     this.rotationVelocity = new THREE.Vector3();
     this.ballCam = true;
+    this.airRollLeft = true;
     this.ballPosition = new THREE.Vector3();
     this.showLine = false;
     this.showAxisOfRotationLine = true;
     this.showTorus = true;
     this.rotationPreset = 'default';
     this.input = {
+      yaw: 0,
+      pitch: 0,
+      roll: 0,
       forward: 0,
-      backward: 0,
-      left: 0,
-      right: 0,
-      pitchUp: 0,
-      pitchDown: 0,
-      rollLeft: 0,
-      rollRight: 0,
       shiftHeld: false,
     };
 
@@ -58,14 +54,6 @@ export class Car extends THREE.Group {
 
     document.addEventListener("keydown", (e) => this.handleKey(e.code, true));
     document.addEventListener("keyup", (e) => this.handleKey(e.code, false));
-
-    const start = new THREE.Vector3(0, 0, 0);
-    const end = new THREE.Vector3(0, 0, -100);
-    // const line = new THREE.Line3(start, end);
-    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
-    this.line = new THREE.Line(geometry, material);
-    this.add(this.line);
-    this.line.visible = this.showLine;
 
     const camera = new THREE.PerspectiveCamera(
       physics.camera.fov,
@@ -104,51 +92,104 @@ export class Car extends THREE.Group {
     this.torus.rotation.x = degToRad(90);
     this.add(this.torus);
 
+    // arrow stuff
+    this.forwardArrow  = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, -1), // direction
+      new THREE.Vector3(0, 0, 0),  // origin    
+      2,                          // length
+      "red",                      // color
+      0.1,
+      0.1,
+    );
+    this.add(this.forwardArrow);
+    this.forwardArrow.visible = this.showLine;
+
+    // Gamepad state
+    this.gamepadIndex = null;
+    window.addEventListener('gamepadconnected', (e) => {
+      this.gamepadIndex = e.gamepad.index;
+    });
+    window.addEventListener('gamepaddisconnected', (e) => {
+      if (this.gamepadIndex === e.gamepad.index) this.gamepadIndex = null;
+    });
   }
 
   handleKey(code, isDown) {
     switch (code) {
       case "KeyA":
-        this.input.right = isDown;
+        this.input.yaw = isDown ? 1 : 0;
         break;
       case "KeyD":
-        this.input.left = isDown;
+        this.input.yaw = isDown ? -1 : 0;
         break;
       case "KeyW":
-        this.input.pitchDown = isDown ? 1 : 0;
+        this.input.pitch = isDown ? -1 : 0;
         break;
       case "KeyS":
-        this.input.pitchUp = isDown ? 1 : 0;
-        break;
-      case "ArrowUp":
-        this.input.pitchDown = isDown ? 1 : 0;
-        break;
-      case "ArrowDown":
-        this.input.pitchUp = isDown ? 1 : 0;
+        this.input.pitch = isDown ? 1 : 0;
         break;
       case "KeyQ":
-        this.input.rollLeft = isDown ? 1 : 0;
+        this.input.roll = isDown ? -1 : 0;
         break;
       case "KeyE":
-        this.input.rollRight = isDown ? 1 : 0;
+        this.input.roll = isDown ? 1 : 0;
+        break;
+      case "ArrowUp":
+        this.input.pitch = isDown ? 1 : 0;
+        break;
+      case "ArrowDown":
+        this.input.pitch = isDown ? 1 : 0;
         break;
       case "ArrowLeft":
-        this.input.rollLeft = isDown ? 1 : 0;
+        this.input.roll = isDown ? 1 : 0;
         break;
       case "ArrowRight":
-        this.input.rollRight = isDown ? 1 : 0;
+        this.input.roll = isDown ? -1 : 0;
         break
       case "Space":
         if (isDown) this.ballCam = !this.ballCam;
         break;
     }
+ 
   }
 
   applyInputs(dt) {
+    // Gamepad input with deadzone
+    let controller_yaw = 0;
+    let controller_pitch = 0;
+    let controller_roll = 0;
+
+    if (this.gamepadIndex !== null) {
+      const gamepads = navigator.getGamepads();
+      const gp = gamepads[this.gamepadIndex];
+      if (gp && gp.connected) {
+      const yaw = -THREE.MathUtils.clamp(applyDeadzone(gp.axes[0]), -1, 1);
+      const pitch = THREE.MathUtils.clamp(applyDeadzone(gp.axes[1]), -1, 1);
+
+      controller_yaw = yaw;
+      controller_pitch = pitch;
+
+      // Button indices: LB=4, RB=5, X=2, Y=3, A=0, B=1
+      if (
+        gp.buttons[4]?.pressed ||
+        gp.buttons[5]?.pressed ||
+        gp.buttons[0]?.pressed ||
+        gp.buttons[1]?.pressed ||
+        gp.buttons[2]?.pressed ||
+        gp.buttons[3]?.pressed
+      ) {
+        controller_roll = this.airRollLeft ? -1 : 1;
+      }
+      }
+    }
+
+
     const inputVec = new THREE.Vector3();
-    inputVec.x = this.input.pitchUp - this.input.pitchDown; // Pitch
-    inputVec.y = this.input.right - this.input.left;         // Yaw
-    inputVec.z = this.input.rollRight - this.input.rollLeft; // Roll
+    inputVec.x = this.input.pitch || controller_pitch; // Pitch
+    inputVec.y = this.input.yaw || controller_yaw;         // Yaw
+    inputVec.z = this.input.roll || controller_roll; // Roll
+
+    
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 
@@ -241,6 +282,7 @@ export class Car extends THREE.Group {
     if (!this.showAxisOfRotationLine && this._rotationLine) this._rotationLine.visible = false;
   }
 
+
   createHelperTorus(axis, scale) {
     if (!this.torus) return;
     const axisDir = axis.clone().normalize();
@@ -266,12 +308,8 @@ export class Car extends THREE.Group {
     this.torus.visible = this.showTorus;
   }
 
-  update(dt) {
-    this.position.addScaledVector(this.velocity, dt);
-  }
-
   updateVisibility() {
-    this.line.visible = this.showLine;
+    this.forwardArrow.visible = this.showLine;
   }
 
   getForwardLine() {
@@ -362,32 +400,4 @@ export class Car extends THREE.Group {
     return true;
   }
 
-  checkFacingBall(ballPos) {
-    // Get car world position
-    const carPos = new THREE.Vector3();
-    this.getWorldPosition(carPos);
-
-
-    
-    // vector from car → ball
-    const toBall = new THREE.Vector3().subVectors(carPos, ballPos).normalize();
-
-    // car’s forward vector (based on current rotation)
-    const forward = new THREE.Vector3(0, 0, 1).applyEuler(this.rotation).normalize();
-
-    // --- YAW (XZ plane) ---
-    const forwardXZ = new THREE.Vector3(forward.x, 0, forward.z).normalize();
-    const toBallXZ = new THREE.Vector3(toBall.x, 0, toBall.z).normalize();
-    const yawDiff = Math.atan2(toBallXZ.x, toBallXZ.z) - Math.atan2(forwardXZ.x, forwardXZ.z);
-
-    // --- PITCH (YZ plane) ---
-    const forwardYZ = new THREE.Vector3(0, forward.y, forward.z).normalize();
-    const toBallYZ = new THREE.Vector3(0, toBall.y, toBall.z).normalize();
-    const pitchDiff = Math.atan2(toBallYZ.y, toBallYZ.z) - Math.atan2(forwardYZ.y, forwardYZ.z);
-
-    // console log yaw and pitch diff in degrees
-    console.log(THREE.MathUtils.radToDeg(yawDiff), THREE.MathUtils.radToDeg(pitchDiff));
-
-    return { yawDiff, pitchDiff };
-  }
 }

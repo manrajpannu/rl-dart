@@ -42,7 +42,7 @@ function setupLights () {
 
 }
 
-const ball = new Ball();
+const ball = new Ball(new THREE.Vector3(0, 0, -3), 0.9125);
 scene.add(ball);
 
 const map = new Map(40);
@@ -64,29 +64,42 @@ const centerX = canvas.width / 2;
 const centerY = canvas.height / 2;
 
 function drawDot(yawDiff, pitchDiff) {
-  // normalize angles
-  const maxAngle = Math.PI / 4;
-  const x = THREE.MathUtils.clamp(-yawDiff / maxAngle, -1, 1);
-  const y = THREE.MathUtils.clamp(-pitchDiff / maxAngle, -1, 1);
-  
-  // convert to pixels
-  const dotX = centerX + x * R;
-  const dotY = centerY + y * R;
-  
-  // draw circle
-  ctx.lineWidth = 2;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Convert yaw and pitch to polar coordinates
+  yawDiff = -yawDiff * 100;
+  pitchDiff = -pitchDiff * 100;
+  const angle = Math.atan2(pitchDiff, yawDiff); // angle in radians
+  const length = Math.min(Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff), R-5); // clamp to circle radius
+
+  const dotX = centerX + length * Math.cos(angle);
+  const dotY = centerY + length * Math.sin(angle);
+
+  // filled grey circle
   ctx.beginPath();
   ctx.arc(centerX, centerY, R, 0, Math.PI * 2);
+  ctx.fillStyle = 'grey';
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = 'black';
   ctx.stroke();
 
-  // draw dot
+  // white dot
   ctx.beginPath();
   ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
-  ctx.fillStyle = 'red';
+  ctx.fillStyle = 'white';
   ctx.fill();
+
 }
 
+window.addEventListener("gamepadconnected", (e) => {
+  const gp = navigator.getGamepads()[e.gamepad.index];
+  console.log(
+    "Gamepad connected at index %d: %s. %d buttons, %d axes.",
+    gp.index,
+    gp.id,
+    gp.buttons.length,
+    gp.axes.length,
+  );
+});
 
 function animate() {
   requestAnimationFrame(animate);
@@ -98,8 +111,6 @@ function animate() {
 
   while (accumulator >= FIXED_DT) {
     ball.intersectsLine(car.getForwardLine(), FIXED_DT);
-    const { yawDiff, pitchDiff } = car.checkFacingBall(ball.position);
-    drawDot(yawDiff, pitchDiff);
     car.applyInputs(FIXED_DT);
     accumulator -= FIXED_DT;
   }

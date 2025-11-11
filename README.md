@@ -1,4 +1,4 @@
-# rl-dart (Rocket-League: Directional-Air-roll-Trainer)
+# rl-dart (Rocket-League: Directional-Air-Roll-Trainer)
 
 A Rocket League air roll trainer and visualization tool. This project helps players practice and visualize air roll mechanics, featuring a customizable car model, ball, and camera system.
 
@@ -35,10 +35,40 @@ npx vite
 Open your browser to [http://localhost:3000](http://localhost:3000) (or the port shown in your terminal).
 
 ## Usage
-- Use the lil-gui panel (top-right) to tweak car, ball, and camera parameters.
-- Use keyboard controls to move and rotate the car.
-- Switch car models and presets via the UI.
-- Monitor performance with the stats panel (top-left).
+
+## Controls
+
+### Keyboard
+- W/S: Pitch (up/down)
+- A/D: Yaw (left/right)
+- Q: Air roll left
+- E: Air roll right
+
+### Controller
+- Left joystick: Yaw (left/right) and Pitch (up/down)
+- X, Y, A, B, LB, RB: Designated air roll
+
+Use the lil-gui panel (top-right) to tweak car, ball, and camera parameters.
+Switch car models and presets via the UI.
+
+## 3D Model Asset Licenses & Credits
+
+This project uses several 3D models from Sketchfab. Please see below for license and credit information for each asset:
+
+### Octane - Rocket League Car
+This work is based on "Octane - Rocket League Car" (https://sketchfab.com/3d-models/octane-rocket-league-car-9910f0a5d158425bbc7deb60c7a81f69) by Jako (https://sketchfab.com/fairlight51) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+### Fennec - Rocket League Car
+This work is based on "Fennec - Rocket League Car" (https://sketchfab.com/3d-models/fennec-rocket-league-car-5b43b50b6eeb4a12a29671df3418f57a) by Jako (https://sketchfab.com/fairlight51) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+### Dominus - Rocket League Car
+This work is based on "Dominus - Rocket League Car" (https://sketchfab.com/3d-models/dominus-rocket-league-car-f592f249a65f41cd81a0e5aa3d418cb2) by Jako (https://sketchfab.com/fairlight51) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+### Ball - Rocket League
+This work is based on "Ball - Rocket League" (https://sketchfab.com/3d-models/ball-rocket-league-2c8911aa1dcd4c53bad842f2d354dfe2) by Jako (https://sketchfab.com/fairlight51) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+### 2021 Lamborghini Countach LPI 800-4
+This work is based on "2021 Lamborghini Countach LPI 800-4" (https://sketchfab.com/3d-models/2021-lamborghini-countach-lpi-800-4-d76b94884432422b966d1a7f8815afb5) by Lexyc16 (https://sketchfab.com/Lexyc16) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
 
 ## UI Features & Controls
 
@@ -85,11 +115,6 @@ rocketcar/
 ├── package.json
 └── README.md
 ```
-
-## Credits
-- [Three.js](https://threejs.org/) for 3D rendering
-- [lil-gui](https://github.com/georgealways/lil-gui) for UI controls
-- [Rocket League](https://www.rocketleague.com/) for inspiration
 
 ## License
 MIT

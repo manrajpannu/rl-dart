@@ -18,9 +18,11 @@ export function createUI(car, ball) {
     worldFolder.add(physics.world, 'gameSpeed', 0, 1).name("Game Speed")
 
     const carFolder = gui.addFolder('Car');
+    carFolder.add(car, 'airRollLeft').name('Airroll Left');
+    
     const visualsFolder = carFolder.addFolder('Visuals');
     const physicsFolder = carFolder.addFolder('Physics');
-
+    
     visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => {
         car.updateVisibility();
     }   );
