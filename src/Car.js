@@ -9,9 +9,6 @@ const applyDeadzone = (value, deadzone = 0.15) => {
 };
 
 function  weightedLerp(current, target, weights, dt) {
-  // weights = how quickly each axis blends (higher = faster)
-  // dt = delta time in seconds (e.g., from clock.getDelta())
-
   const tX = 1.0 - Math.exp(-weights.x * dt);
   const tY = 1.0 - Math.exp(-weights.y * dt);
   const tZ = 1.0 - Math.exp(-weights.z * dt);
@@ -246,15 +243,13 @@ export class Car extends THREE.Group {
       );
       axis.normalize();
 
-      // ✅ Ensure axis points forward (positive Z direction)
       if (axis.z > 0) axis.negate();
     } else {
-      axis.set(0, 0, 1); // default forward axis
+      axis.set(0, 0, 1);
     }
     
     // --- Show the axis of rotation ---
     if (this._rotationLine) {
-      // Update line vertices
       const positions = this._rotationLine.geometry.attributes.position.array;
       // Start point
       positions[0] = 0;
@@ -271,7 +266,6 @@ export class Car extends THREE.Group {
       if (this.showTorus) {
         const axisDir = axis.clone().normalize();
         const alignment = Math.abs(this.forward.dot(axisDir));
-        // 
         const radius = Math.sqrt(1 - alignment * alignment);
         this.createHelperTorus(axisDir, radius*1.5*physics.car.torusBaseScale);
       } else {

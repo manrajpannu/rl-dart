@@ -12,7 +12,6 @@ export class Map extends THREE.Group {
     constructor(planeSize = 40) {
         super();
         this.planeSize = planeSize;
-
     }
 
     gen() {
