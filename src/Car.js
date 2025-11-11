@@ -37,10 +37,12 @@ export class Car extends THREE.Group {
     this.showTorus = true;
     this.rotationPreset = 'default';
     this.input = {
-      yaw: 0,
-      pitch: 0,
-      roll: 0,
-      forward: 0,
+      yawLeft: 0,
+      yawRight: 0,
+      pitchUp: 0,
+      pitchDown: 0,
+      rollLeft: 0,
+      rollRight: 0,
       shiftHeld: false,
     };
 
@@ -114,39 +116,41 @@ export class Car extends THREE.Group {
   handleKey(code, isDown) {
     switch (code) {
       case "KeyA":
-        this.input.yaw = isDown ? 1 : 0;
+        this.input.yawRight = isDown ? 1 : 0;
         break;
       case "KeyD":
-        this.input.yaw = isDown ? -1 : 0;
+        this.input.yawLeft = isDown ? 1 : 0;
         break;
       case "KeyW":
-        this.input.pitch = isDown ? -1 : 0;
+        this.input.pitchDown = isDown ? 1 : 0;
         break;
       case "KeyS":
-        this.input.pitch = isDown ? 1 : 0;
-        break;
-      case "KeyQ":
-        this.input.roll = isDown ? -1 : 0;
-        break;
-      case "KeyE":
-        this.input.roll = isDown ? 1 : 0;
+        this.input.pitchUp = isDown ? 1 : 0;
         break;
       case "ArrowUp":
-        this.input.pitch = isDown ? 1 : 0;
+        this.input.pitchDown = isDown ? 1 : 0;
         break;
       case "ArrowDown":
-        this.input.pitch = isDown ? 1 : 0;
+        this.input.pitchUp = isDown ? 1 : 0;
+        break;
+      case "KeyQ":
+        this.input.rollLeft = isDown ? 1 : 0;
+        break;
+      case "KeyE":
+        this.input.rollRight = isDown ? 1 : 0;
         break;
       case "ArrowLeft":
-        this.input.roll = isDown ? 1 : 0;
+        this.input.rollLeft = isDown ? 1 : 0;
         break;
       case "ArrowRight":
-        this.input.roll = isDown ? -1 : 0;
+        this.input.rollRight = isDown ? 1 : 0;
         break
       case "Space":
         if (isDown) this.ballCam = !this.ballCam;
         break;
     }
+
+    
  
   }
 
@@ -181,12 +185,11 @@ export class Car extends THREE.Group {
     }
 
 
-    const inputVec = new THREE.Vector3();
-    inputVec.x = this.input.pitch || controller_pitch; // Pitch
-    inputVec.y = this.input.yaw || controller_yaw;         // Yaw
-    inputVec.z = this.input.roll || controller_roll; // Roll
 
-    
+    const inputVec = new THREE.Vector3();
+    inputVec.x = this.input.pitchUp - this.input.pitchDown || controller_pitch; // Pitch
+    inputVec.y = this.input.yawRight - this.input.yawLeft || controller_yaw;         // Yaw
+    inputVec.z = this.input.rollRight - this.input.rollLeft || controller_roll; // Roll
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 

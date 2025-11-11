@@ -42,7 +42,7 @@ function setupLights () {
 
 }
 
-const ball = new Ball(new THREE.Vector3(0, 0, -3), 0.9125);
+const ball = new Ball();
 scene.add(ball);
 
 const map = new Map(40);
