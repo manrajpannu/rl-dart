@@ -1,0 +1,403 @@
+import * as THREE from "three";
+import { CarModel, CAR_MODELS } from "./carModel.js";
+import { physics } from "./physicsConfig.js";
+import { degToRad } from "three/src/math/MathUtils.js";
+
+// Deadzone helper
+const applyDeadzone = (value, deadzone = 0.15) => {
+  return Math.abs(value) < deadzone ? 0 : value;
+};
+
+function  weightedLerp(current, target, weights, dt) {
+  // weights = how quickly each axis blends (higher = faster)
+  // dt = delta time in seconds (e.g., from clock.getDelta())
+
+  const tX = 1.0 - Math.exp(-weights.x * dt);
+  const tY = 1.0 - Math.exp(-weights.y * dt);
+  const tZ = 1.0 - Math.exp(-weights.z * dt);
+
+  current.x = THREE.MathUtils.lerp(current.x, target.x, tX);
+  current.y = THREE.MathUtils.lerp(current.y, target.y, tY);
+  current.z = THREE.MathUtils.lerp(current.z, target.z, tZ);
+  }
+
+export class Car extends THREE.Group {
+  constructor(scene) {
+    super();
+    this.scene = scene;
+    this.carModels = new Map();
+    this.currentModel = null;
+    
+    this.loadCarModel(CAR_MODELS[physics.car.body]);
+    
+    this.velocity = new THREE.Vector3();
+    this.rotationVelocity = new THREE.Vector3();
+    this.ballCam = true;
+    this.airRollLeft = true;
+    this.ballPosition = new THREE.Vector3();
+    this.showLine = false;
+    this.showAxisOfRotationLine = true;
+    this.showTorus = true;
+    this.rotationPreset = 'default';
+    this.input = {
+      yaw: 0,
+      pitch: 0,
+      roll: 0,
+      forward: 0,
+      shiftHeld: false,
+    };
+
+    this.rotationSpeed = physics.car.rotationSpeed;
+    this.airDragCoefficient = physics.car.airDragCoefficient;
+    this.maxRotationSpeed = physics.car.maxRotationSpeed;
+    this.maxRollSpeed = physics.car.maxRollSpeed;
+
+    document.addEventListener("keydown", (e) => this.handleKey(e.code, true));
+    document.addEventListener("keyup", (e) => this.handleKey(e.code, false));
+
+    const camera = new THREE.PerspectiveCamera(
+      physics.camera.fov,
+      window.innerWidth / window.innerHeight
+    );
+    this.LookAt = new THREE.Vector3(0, 0, 0);
+    camera.position.set(0, 3, 7);
+    camera.lookAt(this.LookAt);
+
+    this.camera = camera;
+
+    this.Up = new THREE.Vector3(0, 1, 0);
+    this.forward = new THREE.Vector3(0, 0, -1);
+
+    // Create rotation line once
+    const lineGeometry = new THREE.BufferGeometry();
+    // Allocate buffer for 2 points (start and end)
+    lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    this._rotationLine = new THREE.Line(
+      lineGeometry,
+      new THREE.LineBasicMaterial({ color: 0x00ff00 })
+    );
+    this._rotationLine.visible = false;
+    this.add(this._rotationLine);
+
+    // Create torus once
+    this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 32, 32);
+    this._torusMaterial = new THREE.MeshBasicMaterial({ 
+      color: 'purple', 
+      opacity: 0.7, 
+      transparent: true 
+    });
+    this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
+    this.torus.visible = false;
+
+    this.torus.rotation.x = degToRad(90);
+    this.add(this.torus);
+
+    // arrow stuff
+    this.forwardArrow  = new THREE.ArrowHelper(
+      new THREE.Vector3(0, 0, -1), // direction
+      new THREE.Vector3(0, 0, 0),  // origin    
+      2,                          // length
+      "red",                      // color
+      0.1,
+      0.1,
+    );
+    this.add(this.forwardArrow);
+    this.forwardArrow.visible = this.showLine;
+
+    // Gamepad state
+    this.gamepadIndex = null;
+    window.addEventListener('gamepadconnected', (e) => {
+      this.gamepadIndex = e.gamepad.index;
+    });
+    window.addEventListener('gamepaddisconnected', (e) => {
+      if (this.gamepadIndex === e.gamepad.index) this.gamepadIndex = null;
+    });
+  }
+
+  handleKey(code, isDown) {
+    switch (code) {
+      case "KeyA":
+        this.input.yaw = isDown ? 1 : 0;
+        break;
+      case "KeyD":
+        this.input.yaw = isDown ? -1 : 0;
+        break;
+      case "KeyW":
+        this.input.pitch = isDown ? -1 : 0;
+        break;
+      case "KeyS":
+        this.input.pitch = isDown ? 1 : 0;
+        break;
+      case "KeyQ":
+        this.input.roll = isDown ? -1 : 0;
+        break;
+      case "KeyE":
+        this.input.roll = isDown ? 1 : 0;
+        break;
+      case "ArrowUp":
+        this.input.pitch = isDown ? 1 : 0;
+        break;
+      case "ArrowDown":
+        this.input.pitch = isDown ? 1 : 0;
+        break;
+      case "ArrowLeft":
+        this.input.roll = isDown ? 1 : 0;
+        break;
+      case "ArrowRight":
+        this.input.roll = isDown ? -1 : 0;
+        break
+      case "Space":
+        if (isDown) this.ballCam = !this.ballCam;
+        break;
+    }
+ 
+  }
+
+  applyInputs(dt) {
+    // Gamepad input with deadzone
+    let controller_yaw = 0;
+    let controller_pitch = 0;
+    let controller_roll = 0;
+
+    if (this.gamepadIndex !== null) {
+      const gamepads = navigator.getGamepads();
+      const gp = gamepads[this.gamepadIndex];
+      if (gp && gp.connected) {
+      const yaw = -THREE.MathUtils.clamp(applyDeadzone(gp.axes[0]), -1, 1);
+      const pitch = THREE.MathUtils.clamp(applyDeadzone(gp.axes[1]), -1, 1);
+
+      controller_yaw = yaw;
+      controller_pitch = pitch;
+
+      // Button indices: LB=4, RB=5, X=2, Y=3, A=0, B=1
+      if (
+        gp.buttons[4]?.pressed ||
+        gp.buttons[5]?.pressed ||
+        gp.buttons[0]?.pressed ||
+        gp.buttons[1]?.pressed ||
+        gp.buttons[2]?.pressed ||
+        gp.buttons[3]?.pressed
+      ) {
+        controller_roll = this.airRollLeft ? -1 : 1;
+      }
+      }
+    }
+
+
+    const inputVec = new THREE.Vector3();
+    inputVec.x = this.input.pitch || controller_pitch; // Pitch
+    inputVec.y = this.input.yaw || controller_yaw;         // Yaw
+    inputVec.z = this.input.roll || controller_roll; // Roll
+
+    
+
+    if (inputVec.lengthSq() > 1) inputVec.normalize();
+
+    // Update rotational velocity
+    this.rotationVelocity.x += inputVec.x * this.rotationSpeed * dt;
+    this.rotationVelocity.y += inputVec.y * this.rotationSpeed * dt;
+    this.rotationVelocity.z += inputVec.z * this.rotationSpeed * 1.15 * dt;
+
+    // Apply drag
+    const drag = new THREE.Vector3(this.airDragCoefficient, this.airDragCoefficient, this.airDragCoefficient);
+    this.rotationVelocity.multiply(drag);
+
+    if (this.rotationVelocity.lengthSq() < 1e-3)
+      this.rotationVelocity.set(0, 0, 0);
+
+    // Clamp
+    this.rotationVelocity.x = THREE.MathUtils.clamp(
+      this.rotationVelocity.x, -this.maxRotationSpeed, this.maxRotationSpeed
+    );
+    this.rotationVelocity.y = THREE.MathUtils.clamp(
+      this.rotationVelocity.y, -this.maxRotationSpeed, this.maxRotationSpeed
+    );
+    this.rotationVelocity.z = THREE.MathUtils.clamp(
+      this.rotationVelocity.z, -this.maxRotationSpeed * 1.2, this.maxRotationSpeed * 1.2
+    );
+
+    // --- Create rotation matrix for current frame ---
+    const rotMat = new THREE.Matrix4();
+
+    const q = new THREE.Quaternion()
+      .setFromEuler(new THREE.Euler(
+        this.rotationVelocity.x * dt,
+        this.rotationVelocity.y * dt,
+        -this.rotationVelocity.z * dt
+      ));
+
+    rotMat.makeRotationFromQuaternion(q);
+
+    // --- Apply rotation matrix to model ---
+    this.matrix.multiply(rotMat);
+    this.matrix.decompose(this.position, this.quaternion, this.scale);
+
+    // --- Extract axis of rotation (eigenvector for λ = 1) ---
+    const axis = new THREE.Vector3();
+    const m3 = new THREE.Matrix3().setFromMatrix4(rotMat);
+    const trace = m3.elements[0] + m3.elements[4] + m3.elements[8];
+    const angle = Math.acos(Math.min(Math.max((trace - 1) / 2, -1), 1));
+
+    if (angle > 1e-6) {
+      axis.set(
+        m3.elements[7] - m3.elements[5],
+        m3.elements[2] - m3.elements[6],
+        m3.elements[3] - m3.elements[1]
+      );
+      axis.normalize();
+
+      // ✅ Ensure axis points forward (positive Z direction)
+      if (axis.z > 0) axis.negate();
+    } else {
+      axis.set(0, 0, 1); // default forward axis
+    }
+    
+    // --- Show the axis of rotation ---
+    if (this._rotationLine) {
+      // Update line vertices
+      const positions = this._rotationLine.geometry.attributes.position.array;
+      // Start point
+      positions[0] = 0;
+      positions[1] = 0;
+      positions[2] = 0;
+      // End point
+      const end = axis.multiplyScalar(2);
+      positions[3] = end.x;
+      positions[4] = end.y;
+      positions[5] = end.z;
+      
+      this._rotationLine.geometry.attributes.position.needsUpdate = true;
+      this._rotationLine.visible = this.showAxisOfRotationLine;
+      if (this.showTorus) {
+        const axisDir = axis.clone().normalize();
+        const alignment = Math.abs(this.forward.dot(axisDir));
+        // 
+        const radius = Math.sqrt(1 - alignment * alignment);
+        this.createHelperTorus(axisDir, radius*1.5*physics.car.torusBaseScale);
+      } else {
+        this.torus.visible = false;
+        this.torus.scale.setScalar(0);
+      }
+    }
+    if (!this.showAxisOfRotationLine && this._rotationLine) this._rotationLine.visible = false;
+  }
+
+
+  createHelperTorus(axis, scale) {
+    if (!this.torus) return;
+    const axisDir = axis.clone().normalize();
+
+    const center = axisDir.clone().multiplyScalar(0.55);
+    const torusUp = new THREE.Vector3(0, 0, 1);
+    const torusQuat = new THREE.Quaternion();
+
+    if (torusUp.dot(axisDir) > 0.9999) {
+      torusQuat.identity();
+    } else if (torusUp.dot(axisDir) < -0.9999) {
+      torusQuat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
+    } else {
+      torusQuat.setFromUnitVectors(torusUp, axisDir);
+    }
+    this.torus.position.copy(center);
+    this.torus.quaternion.copy(torusQuat);
+
+    if (typeof scale === 'number' && isFinite(scale)) {
+      this.torus.scale.setScalar(Math.max(0.01, scale));
+    }
+
+    this.torus.visible = this.showTorus;
+  }
+
+  updateVisibility() {
+    this.forwardArrow.visible = this.showLine;
+  }
+
+  getForwardLine() {
+    // Car’s world position
+    const origin = new THREE.Vector3();
+    this.getWorldPosition(origin);
+
+    // Car’s forward direction (-Z in most models)
+    const forward = new THREE.Vector3(0, 0, -1);
+    forward.applyQuaternion(this.quaternion); // Rotate to match car orientation
+
+    // Return as a ray
+    return new THREE.Ray(origin, forward.normalize());
+  }
+
+  updateFov() {
+    this.camera.fov = physics.camera.fov
+    this.camera.updateProjectionMatrix();
+  }
+
+  updateCamera(ballPosition, dt) {
+    let forwardDir = new THREE.Vector3();
+    let lookAt = new THREE.Vector3();
+    let weights = new THREE.Vector3(0, 0, 0);
+
+    if (this.ballCam) {
+      forwardDir.subVectors(ballPosition, this.position);
+      forwardDir.normalize();
+      lookAt = ballPosition.clone();
+    } else {
+      weights = new THREE.Vector3(0.5, 0.2, 0.5);
+      
+      forwardDir.copy(this.forward);
+      forwardDir.applyQuaternion(this.quaternion);
+      forwardDir.normalize();
+      lookAt = this.position.clone().add(this.Up.clone().multiplyScalar(physics.camera.height));
+    }
+
+    let desiredCameraPos = this.position
+      .clone()
+      .sub(forwardDir.multiplyScalar(physics.camera.distance))
+      .add(this.Up.clone().multiplyScalar(physics.camera.height));
+
+    this.ballCam ?  this.camera.position.lerp(desiredCameraPos, dt) :  weightedLerp(this.camera.position, desiredCameraPos, weights, dt)
+    
+    const smoothLookAt = new THREE.Vector3().lerpVectors(
+      this.LookAt,
+      lookAt,
+      dt
+    );
+    this.camera.lookAt(smoothLookAt);
+  }
+
+  loadCarModel(modelConfig) {
+    console.log('Loading car model:', modelConfig.name);
+    if (!this.carModels.has(modelConfig.name)) {
+      const model = new CarModel(this.scene, modelConfig);
+      this.carModels.set(modelConfig.name, model);
+      this.add(model);
+      
+      if (!this.currentModel) {
+        this.currentModel = modelConfig.name;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  switchCarModel(modelName) {
+    if (this.currentModel === modelName) return true;
+    
+    if (!this.carModels.has(modelName)) {
+      console.warn(`Car model ${modelName} not loaded. Loading it now...`);
+      const modelConfig = Object.values(CAR_MODELS).find(config => config.name === modelName);
+      if (!modelConfig) {
+        console.error(`Car model ${modelName} not found in CAR_MODELS`);
+        return false;
+      }
+      this.loadCarModel(modelConfig);
+    }
+    
+    if (this.currentModel) {
+      this.carModels.get(this.currentModel).visible = false;
+    }
+    
+    this.carModels.get(modelName).visible = true;
+    this.currentModel = modelName;
+    return true;
+  }
+
+}

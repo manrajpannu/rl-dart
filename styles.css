@@ -1,0 +1,96 @@
+:root {
+  /* header height variable referenced by index.html layout */
+  --header-height: 22px;
+  --header-padding-horizontal: 12px;
+  --ui-z: 10010;
+}
+
+/* page base */
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #0d0d0d;
+  color: white;
+}
+
+/* Container for the 3D scene + lil-gui (fills remaining viewport) */
+#three-container {
+  position: relative;
+  width: 100vw;
+  height: calc(100vh - var(--header-height)); /* subtract header height */
+  overflow: hidden;
+}
+
+#three-container > .stats {
+  position: absolute !important;
+  top: 10px; /* move inside 3D container */
+  left: 10px;
+}
+
+.stats canvas {
+  display: block;
+}
+
+/* Place lil-gui controls inside the three-container */
+#three-container .lil-root {
+  position: absolute !important;
+  top: 10px;
+  right: 10px;
+  z-index: var(--ui-z); /* above the canvas */
+  pointer-events: auto;
+}
+
+/* Ensure canvas sits under UI layers */
+#three-container canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* tiny adjustments for lil-gui auto placement (fallback) */
+.lil-gui.autoPlace {
+  max-height: 100%;
+  position: fixed;
+  right: 7px;
+  top: calc(var(--header-height) + 8px);
+  z-index: calc(var(--ui-z) + 1);
+}
+
+/* Thin GitHub-themed header */
+#top-header {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background: #1f1f1f;; /* GitHub dark grey */
+  color: #c9d1d9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--header-padding-horizontal);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size: 12px;
+  z-index: 10001;
+  box-shadow: 0 1px 0 rgba(27,31,35,0.08);
+}
+#top-header .brand { display: inline-flex; align-items: center; gap: 8px; color: #c9d1d9; text-decoration: none; }
+#top-header .brand svg { width: 14px; height: 14px; fill: #c9d1d9; }
+#top-header .actions a { color: #c9d1d9; text-decoration: none; font-weight: 600; }
+
+@media (max-width: 420px) {
+  body { padding-top: 32px; }
+  #top-header { height: 32px; font-size: 12px; }
+}
+
+.idealAdjustment {
+  /* width: 120px;
+  height: 120px; */
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  pointer-events: none;
+  z-index: 10002;
+}
