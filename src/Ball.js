@@ -8,8 +8,9 @@ export class Ball extends THREE.Group {
     red = new THREE.Color(0xff5555);
 
     constructor(position = new THREE.Vector3(0, 3, -3), radius = 0.9125) {
-        super();
-        this.modelUrl = `${import.meta.env.BASE_URL}/models/ball/scene.gltf`;
+    super();
+    // Use the same path logic as car models. The model should be in public/models/ball/scene.gltf
+    this.modelUrl = `${import.meta.env.BASE_URL}models/ball/scene.gltf`;
         this.radius = radius;
         this.intersecting = false;
         this.targetTimer = 0;
