@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 const loader = new THREE.TextureLoader();
-const texture = loader.load( 'https://threejs.org/manual/examples/public/images/checker.png' );
+const texture = loader.load( 'https://threejs.org/manual/examples/resources/images/checker.png' );
 const planeMat = new THREE.MeshPhongMaterial( {
     map: texture,
     side: THREE.DoubleSide,

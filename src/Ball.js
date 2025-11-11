@@ -9,7 +9,7 @@ export class Ball extends THREE.Group {
 
     constructor(position = new THREE.Vector3(0, 3, -3), radius = 0.9125) {
         super();
-        this.modelUrl = 'public/models/ball/scene.gltf';
+        this.modelUrl = `${import.meta.env.BASE_URL}/models/ball/scene.gltf`;
         this.radius = radius;
         this.intersecting = false;
         this.targetTimer = 0;
