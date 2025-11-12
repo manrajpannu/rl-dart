@@ -86,3 +86,81 @@ body {
   pointer-events: none;
   z-index: 10002;
 }
+
+      #intro-modal {
+        display: block;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(20,20,20,0.96);
+        z-index: 10000;
+        font-family: 'Segoe UI', 'Roboto Mono', 'Consolas', monospace;
+        letter-spacing: 0.01em;
+      }
+      .intro-modal-content {
+        background: #23272a;
+        color: #d1d5db;
+        max-width: 370px;
+        margin: 8vh auto 0 auto;
+        padding: 1em;
+        border-radius: 0;
+        box-shadow: 0 2px 24px #000a;
+        text-align: left;
+        border: 2px solid #444;
+      }
+      .intro-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #e5e7eb;
+        text-transform: lowercase;
+        margin-bottom: 0.7em;
+        letter-spacing: 0.04em;
+      }
+      .intro-desc {
+        font-size: 0.85rem;
+        color: #b0b3b8;
+        margin-bottom: 1.2em;
+        text-transform: lowercase;
+      }
+      .intro-section {
+        font-size: 0.9rem;
+        color: #e5e7eb;
+        font-weight: 500;
+        margin-bottom: 0.5em;
+        text-transform: lowercase;
+        letter-spacing: 0.03em;
+      }
+      .intro-list {
+        font-size: 0.8rem;
+        color: #d1d5db;
+        list-style: none;
+        padding: 0;
+        margin-bottom: 1.2em;
+      }
+      .intro-list li {
+        margin-bottom: 0.4em;
+        text-transform: lowercase;
+        border-left: 2px solid #555;
+        padding-left: 0.7em;
+        letter-spacing: 0.01em;
+      }
+      .intro-list span {
+        color: #e5e7eb;
+        font-weight: 600;
+        margin-right: 0.3em;
+      }
+      .intro-close {
+        background: #181a1b;
+        color: #e5e7eb;
+        border: 2px solid #a0a0a0;
+        border-radius: 0;
+        font-size: 0.8rem;
+        text-transform: lowercase;
+        padding: 0.5em 1.2em;
+        cursor: pointer;
+        box-shadow: 0 1px 4px #0006;
+        transition: background 0.2s, color 0.2s;
+      }
+      .intro-close:hover {
+        background: #23272a;
+      }
