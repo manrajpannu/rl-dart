@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { CarModel, CAR_MODELS } from "./carModel.js";
 import { physics } from "./physicsConfig.js";
 import { degToRad } from "three/src/math/MathUtils.js";
+import { cross } from "three/tsl";
 
 // Deadzone helper
 const crossDeadzone = (value, deadzone = 0.10) => {
@@ -9,13 +10,21 @@ const crossDeadzone = (value, deadzone = 0.10) => {
 };
 
 const circleDeadzone = (x, y, deadzone = 0.10) => {
-  return Math.hypot(x, y) < deadzone ? (0, 0) : (x, y);
+  return Math.hypot(x, y) < deadzone ? { x: 0, y: 0 } : { x, y };
 };
 
 function circleToSquare(x, y) {
-  const x2 = x * Math.sqrt(1 - (y * y) / 2);
-  const y2 = y * Math.sqrt(1 - (x * x) / 2);
-  return { x: x2, y: y2 };
+  const absX = Math.abs(x);
+  const absY = Math.abs(y);
+
+  // If both are zero, return zero to avoid division by zero.
+  if (absX === 0 && absY === 0) return { x: 0, y: 0 };
+
+  let scale = Math.max(absX, absY);
+  return {
+    x: x / scale,
+    y: y / scale,
+  };
 }
 
 function  weightedLerp(current, target, weights, dt) {
@@ -96,7 +105,7 @@ export class Car extends THREE.Group {
     };
 
     // Controller state
-    this.controllerDeadzone = 0.10;
+    this.controllerDeadzone = 0.15;
     this.controllerDeadzoneType = 'cross'; 
     this.controllerSensitivity = 1.0;
     this.gamepadIndex = null;
@@ -161,64 +170,93 @@ export class Car extends THREE.Group {
  
   }
 
-  handleController() {
-    let yaw = 0, pitch = 0, roll = 0;
+handleController() {
+  let pitch = 0, yaw = 0, roll = 0;
 
-    if (this.gamepadIndex !== null) {
-      const gamepads = navigator.getGamepads();
-      const gp = gamepads[this.gamepadIndex];
-      if (gp && gp.connected) {
+  if (this.gamepadIndex !== null) {
+    const gp = navigator.getGamepads()[this.gamepadIndex];
+    if (gp && gp.connected) {
 
-        let x, y;
-        switch (this.controllerDeadzoneType) {
-          case 'circle':
-            ({x, y} = circleDeadzone(gp.axes[0], gp.axes[1], this.controllerDeadzone));
-            break;
-          case 'cross':
-            x = crossDeadzone(gp.axes[0], this.controllerDeadzone);
-            y = crossDeadzone(gp.axes[1], this.controllerDeadzone);
+      // Raw stick input
+      let x = gp.axes[0];
+      let y = gp.axes[1];
 
-            break;
-          case 'square':
-            ({x, y} = circleToSquare(gp.axes[0], gp.axes[1], this.controllerDeadzone));
-            x = crossDeadzone(x, this.controllerDeadzone);
-            y = crossDeadzone(y, this.controllerDeadzone);
-            break;     
-          default:
-            break;
+      // Apply sensitivity FIRST
+      x *= this.controllerSensitivity;
+      y *= this.controllerSensitivity;
+
+      // Apply deadzone + mapping
+      switch (this.controllerDeadzoneType) {
+
+        case 'circle': {
+          ({x, y} = circleDeadzone(x, y, this.controllerDeadzone));
+          const hyp = Math.hypot(x, y);
+          if (hyp > 1) {
+            x /= hyp;
+            y /= hyp;
+          }
+          break;
         }
-        
-      yaw = -THREE.MathUtils.clamp(x*this.controllerSensitivity, -1, 1);
-      pitch = THREE.MathUtils.clamp(y*this.controllerSensitivity, -1, 1);
-      
-      // Button indices: LB=4, RB=5, X=2, Y=3, A=0, B=1
-      // fix this later
-      if (
-        gp.buttons[4]?.pressed ||
-        gp.buttons[5]?.pressed ||
-        gp.buttons[0]?.pressed ||
-        gp.buttons[1]?.pressed ||
-        gp.buttons[2]?.pressed ||
-        gp.buttons[3]?.pressed
-      ) {
+
+        case 'cross': {
+          x = crossDeadzone(x, this.controllerDeadzone);
+          y = crossDeadzone(y, this.controllerDeadzone);
+
+          const hyp = Math.hypot(x, y);
+          if (hyp > 1) {
+            x /= hyp;
+            y /= hyp;
+          }
+          break;
+        }
+
+        case 'square': {
+          // Convert circular stick → square range
+          x = crossDeadzone(gp.axes[0], this.controllerDeadzone);
+          y = crossDeadzone(gp.axes[1], this.controllerDeadzone);
+          
+          const sq = circleToSquare(x * this.controllerSensitivity, y * this.controllerSensitivity);
+
+          // THEN apply deadzone + sensitivity
+          x = sq.x
+          y = sq.y
+          break;
+        }
+
+        default: {
+          x = crossDeadzone(x, this.controllerDeadzone);
+          y = crossDeadzone(y, this.controllerDeadzone);
+          break;
+        }
+      }
+
+      // Convert stick to your game's pitch/yaw
+      pitch = THREE.MathUtils.clamp(y, -1, 1);
+      yaw   = -THREE.MathUtils.clamp(x, -1, 1);
+
+      // Simplified roll logic (press any LB/RB/X/Y/A/B)
+      const pressed =
+        gp.buttons[0]?.pressed || gp.buttons[1]?.pressed ||
+        gp.buttons[2]?.pressed || gp.buttons[3]?.pressed ||
+        gp.buttons[4]?.pressed || gp.buttons[5]?.pressed;
+
+      if (pressed) {
         roll = this.airRollLeft ? -1 : 1;
       }
-      }
     }
-
-    return {controller_yaw: yaw, controller_pitch: pitch, controller_roll: roll};
   }
+
+  return {controller_pitch: (this.input.pitchUp - this.input.pitchDown) || pitch, controller_yaw: (this.input.yawRight - this.input.yawLeft) || yaw, controller_roll: (this.input.rollRight - this.input.rollLeft) || roll};
+}
  
   applyInputs(dt) {
 
     let { controller_yaw, controller_pitch, controller_roll } = this.handleController();
 
     const inputVec = new THREE.Vector3();
-    inputVec.x = (this.input.pitchUp - this.input.pitchDown) || controller_pitch;      // Pitch
-    inputVec.y = (this.input.yawRight - this.input.yawLeft) || controller_yaw;         // Yaw
-    inputVec.z = (this.input.rollRight - this.input.rollLeft) || controller_roll;      // Roll
-
-    console.log(inputVec);
+    inputVec.x = controller_pitch;      // Pitch
+    inputVec.y = controller_yaw;         // Yaw
+    inputVec.z = controller_roll;      // Roll
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 

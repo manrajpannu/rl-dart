@@ -32,19 +32,27 @@ export function createUI(car, ball, map, renderer) {
 
     // World Folder
     const worldFolder = gui.addFolder('World');
-    worldFolder.add(physics.world, 'gameSpeed', 0, 1).name("Game Speed")
-    worldFolder.add( { youtuberMode: false }, 'youtuberMode' ).name('Youtuber Mode').onChange( (mode) => {
+    worldFolder.add(physics.world, 'gameSpeed', 0, 1).name("Game Speed");
+    worldFolder.add({ youtuberMode: false }, 'youtuberMode').name('Youtuber Mode').onChange((mode) => {
         youtuberMode(mode, ball, map, renderer);
-    } );
+    });
 
     // Controller Folder
     const controllerFolder = gui.addFolder('Controller');
-    controllerFolder.add( car, 'controllerDeadzone', 0, 1 ).name('Deadzone Size');
-    controllerFolder.add( car, 'controllerDeadzoneType', [ 'cross', 'square', 'circle' ] ).name('Deadzone Type');
-    controllerFolder.add( car, 'controllerSensitivity', 0.1, 5 ).name('Sensitivity');
+    // Deadzone Canvas Toggle
+    const deadzoneCanvas = document.getElementById('deadzone');
+    const deadzoneState = { showDeadzone: true };
+    controllerFolder.add(deadzoneState, 'showDeadzone').name('Show Deadzone').onChange((show) => {
+        deadzoneCanvas.style.display = show ? 'block' : 'none';
+    });
+    controllerFolder.add(car, 'controllerDeadzone', 0, 1).name('Deadzone Size');
+    controllerFolder.add(car, 'controllerDeadzoneType', ['cross', 'square', 'circle']).name('Deadzone Type');
+    controllerFolder.add(car, 'controllerSensitivity', 0.1, 5).name('Sensitivity');
+
 
     // Car Folder
     const carFolder = gui.addFolder('Car');
+    carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
     carFolder.add(car, 'airRollLeft').name('Air Roll Left');
     
     // Visuals Folder
@@ -58,7 +66,6 @@ export function createUI(car, ball, map, renderer) {
         helperDonutFolder.add( car, 'torusDrawOnTop').name('Always On Top').onChange((value) => car.setTorusDrawOnTop(value));
         helperDonutFolder.add( physics.car, 'torusBaseScale', 0, 2 ).name('Donut Scale');
 
-    visualsFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
     
     // Physics Folder
     const physicsFolder = carFolder.addFolder('Physics');
