@@ -37,6 +37,12 @@ export function createUI(car, ball, map, renderer) {
         youtuberMode(mode, ball, map, renderer);
     } );
 
+    // Controller Folder
+    const controllerFolder = gui.addFolder('Controller');
+    controllerFolder.add( car, 'controllerDeadzone', 0, 1 ).name('Deadzone Size');
+    controllerFolder.add( car, 'controllerDeadzoneType', [ 'cross', 'square', 'circle' ] ).name('Deadzone Type');
+    controllerFolder.add( car, 'controllerSensitivity', 0.1, 5 ).name('Sensitivity');
+
     // Car Folder
     const carFolder = gui.addFolder('Car');
     carFolder.add(car, 'airRollLeft').name('Air Roll Left');
