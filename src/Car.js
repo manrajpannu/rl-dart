@@ -181,15 +181,14 @@ handleController() {
       let x = gp.axes[0];
       let y = gp.axes[1];
 
-      // Apply sensitivity FIRST
-      x *= this.controllerSensitivity;
-      y *= this.controllerSensitivity;
-
       // Apply deadzone + mapping
       switch (this.controllerDeadzoneType) {
 
         case 'circle': {
           ({x, y} = circleDeadzone(x, y, this.controllerDeadzone));
+          // apply sens
+          x *= this.controllerSensitivity;
+          y *= this.controllerSensitivity;
           const hyp = Math.hypot(x, y);
           if (hyp > 1) {
             x /= hyp;
@@ -201,7 +200,9 @@ handleController() {
         case 'cross': {
           x = crossDeadzone(x, this.controllerDeadzone);
           y = crossDeadzone(y, this.controllerDeadzone);
-
+          // apply sens
+          x *= this.controllerSensitivity;
+          y *= this.controllerSensitivity;
           const hyp = Math.hypot(x, y);
           if (hyp > 1) {
             x /= hyp;
