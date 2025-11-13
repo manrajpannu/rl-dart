@@ -73,7 +73,7 @@ export class Car extends THREE.Group {
     lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
     this._rotationLine = new THREE.Line(
       lineGeometry,
-      new THREE.LineBasicMaterial({ color: 0x00ff00 })
+      new THREE.LineBasicMaterial({ color: 'blue' })
     );
     this._rotationLine.visible = false;
     this.add(this._rotationLine);
@@ -81,14 +81,13 @@ export class Car extends THREE.Group {
     // Create torus once
     this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 32, 32);
     this._torusMaterial = new THREE.MeshBasicMaterial({ 
-      color: 'purple', 
-      opacity: 0.7, 
-      transparent: true 
+      color: 'magenta', 
     });
     this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
     this.torus.visible = false;
 
     this.torus.rotation.x = degToRad(90);
+    this.torusDrawOnTop = false;
     this.add(this.torus);
 
     // arrow stuff
@@ -111,6 +110,22 @@ export class Car extends THREE.Group {
     window.addEventListener('gamepaddisconnected', (e) => {
       if (this.gamepadIndex === e.gamepad.index) this.gamepadIndex = null;
     });
+  }
+
+  /**
+   * Controls whether the helper torus is always drawn on top of other objects.
+   * @param {boolean} enable - If true, torus is always visible above everything.
+   */
+  setTorusDrawOnTop(enable) {
+    if (!this.torus) return;
+    this._torusDrawOnTop = Boolean(enable);
+    this.torus.renderOrder = this._torusDrawOnTop ? 1000 : 0;
+    const mat = this.torus.material;
+    if (mat) {  
+      mat.depthTest = !this._torusDrawOnTop;
+      mat.depthWrite = !this._torusDrawOnTop;
+      mat.needsUpdate = true;
+    }
   }
 
   handleKey(code, isDown) {
@@ -284,7 +299,7 @@ export class Car extends THREE.Group {
     if (!this.torus) return;
     const axisDir = axis.clone().normalize();
 
-    const center = axisDir.clone().multiplyScalar(0.55);
+    const center = axisDir.clone().multiplyScalar(0.9-scale*0.2); // when no dar is applied, the torus is further up, when you are applying full dar then torus is back
     const torusUp = new THREE.Vector3(0, 0, 1);
     const torusQuat = new THREE.Quaternion();
 

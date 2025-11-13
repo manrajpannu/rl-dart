@@ -29,8 +29,6 @@ export class Map extends THREE.Group {
         mesh.rotation.x = Math.PI * - .5;
         this.add( mesh );
     }
-
-
 }
 
  

@@ -131,5 +131,5 @@ window.addEventListener('resize', () => {
 })
 
 setupLights();
-createUI(car, ball);
+createUI(car, ball, map, renderer);
 animate();
