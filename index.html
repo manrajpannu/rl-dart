@@ -8,18 +8,22 @@
   </head>
   <body>
     <div id="intro-modal">
-      <div class="intro-modal-content">
-        <div class="intro-title">welcome to rl-dart</div>
-        <div class="intro-desc">rl-dart is a rocket league directional air roll trainer. use it to practice and visualize air roll mechanics, car control, and ball interaction in a 3d environment.</div>
-        <div class="intro-section">controls</div>
-        <ul class="intro-list">
+      <div class="intro-modal-content modal-theme">
+        <div class="intro-title modal-theme">welcome to rl-dart</div>
+        <div class="intro-desc modal-theme">rl-dart is a rocket league directional air roll trainer. use it to practice and visualize air roll mechanics, car control, and ball interaction in a 3d environment.</div>
+        <div class="intro-section modal-theme">controls</div>
+        <ul class="intro-list modal-theme">
           <li><span>keyboard:</span> w/s = pitch, a/d = yaw, q/e = air roll</li>
           <li><span>controller:</span> left stick = pitch/yaw, x/y/a/b/lb/rb = air roll</li>
-          <li><span>gui panel:</span> tweak car, ball, camera, rotation, presets</li>
-          <li><span>stats:</span> view performance metrics (top left)</li>
-          <li><span>models:</span> switch car models and presets in gui</li>
         </ul>
-        <button id="close-intro" class="intro-close">got it</button>
+        <div class="intro-section modal-theme">patch notes</div>
+        <div class="patchnotes-date modal-theme"><span>date:</span> 2025-11-13</div>
+        <ul class="intro-list modal-theme">
+          <li>added normal air roll for kbm and controller</li>
+          <li>deadzone visualization and toggle in GUI</li>
+          <li>technical, minimalist UI improvements</li>
+        </ul>
+        <button id="close-intro" class="intro-close modal-theme">got it</button>
       </div>
     </div>
     <header id="top-header">
@@ -39,12 +43,12 @@
       </canvas>
     <script>
       // Only show modal on first visit
-      if (localStorage.getItem('rlDartIntroSeen')) {
+      if (localStorage.getItem('rlDartIntroSeen2')) {
         document.getElementById('intro-modal').style.display = 'none';
       }
       document.getElementById('close-intro').onclick = function() {
         document.getElementById('intro-modal').style.display = 'none';
-        localStorage.setItem('rlDartIntroSeen', '1');
+        localStorage.setItem('rlDartIntroSeen2', '1');
       };
     </script>
   </body>

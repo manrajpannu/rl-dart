@@ -1,3 +1,75 @@
+.modal-theme {
+  background: #181818;
+  color: #eee;
+  font-family: 'Roboto Mono', 'Consolas', monospace;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px #0002;
+  text-transform: lowercase;
+  letter-spacing: 0.01em;
+}
+.modal-theme.intro-modal-content {
+  background: #181818;
+  color: #eee;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px #0002;
+}
+.modal-theme.intro-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin-bottom: 0.7em;
+  letter-spacing: 0.04em;
+}
+.modal-theme.intro-desc {
+  font-size: 0.85rem;
+  color: #b0b3b8;
+  margin-bottom: 1.2em;
+}
+.modal-theme.intro-section {
+  font-size: 0.9rem;
+  color: #e5e7eb;
+  font-weight: 500;
+  margin-bottom: 0.5em;
+  letter-spacing: 0.03em;
+}
+.modal-theme.intro-list {
+  font-size: 0.8rem;
+  color: #d1d5db;
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.2em;
+}
+.modal-theme.intro-list li {
+  margin-bottom: 0.4em;
+  border-left: 2px solid #555;
+  padding-left: 0.7em;
+  letter-spacing: 0.01em;
+}
+.modal-theme.intro-list span {
+  color: #e5e7eb;
+  font-weight: 600;
+  margin-right: 0.3em;
+}
+.modal-theme.patchnotes-date {
+  font-size: 0.8rem;
+  color: #b0b3b8;
+  margin-bottom: 0.5em;
+  padding-left: 0.7em;
+}
+.modal-theme.intro-close {
+  background: #181a1b;
+  color: #e5e7eb;
+  border: 2px solid #a0a0a0;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  padding: 0.5em 1.2em;
+  cursor: pointer;
+  box-shadow: 0 1px 4px #0006;
+  transition: background 0.2s, color 0.2s;
+}
+.modal-theme.intro-close:hover {
+  background: #23272a;
+}
 :root {
   --header-height: 22px;
   --header-padding-horizontal: 12px;
@@ -165,7 +237,7 @@ body {
   background: #181a1b;
   color: #e5e7eb;
   border: 2px solid #a0a0a0;
-  border-radius: 0;
+  border-radius: 2px;
   font-size: 0.8rem;
   text-transform: lowercase;
   padding: 0.5em 1.2em;

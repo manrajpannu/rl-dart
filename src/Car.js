@@ -130,12 +130,52 @@ export class Car extends THREE.Group {
   }
 
   handleKey(code, isDown) {
+    if (code === "ShiftLeft" || code === "ShiftRight") {
+      this.input.shiftHeld = isDown;
+      // Instantly switch roll/yaw when shift is pressed or released
+      if (!isDown) {
+        // Shift released: if A/D held, switch roll to yaw
+        if (this.input.rollLeft) {
+          this.input.rollLeft = 0;
+          if (this.input.aHeld) this.input.yawRight = 1;
+        }
+        if (this.input.rollRight) {
+          this.input.rollRight = 0;
+          if (this.input.dHeld) this.input.yawLeft = 1;
+        }
+      } else {
+        // Shift pressed: if A/D held, switch yaw to roll
+        if (this.input.yawRight) {
+          this.input.yawRight = 0;
+          if (this.input.aHeld) this.input.rollLeft = 1;
+        }
+        if (this.input.yawLeft) {
+          this.input.yawLeft = 0;
+          if (this.input.dHeld) this.input.rollRight = 1;
+        }
+      }
+      return;
+    }
     switch (code) {
       case "KeyA":
-        this.input.yawRight = isDown ? 1 : 0;
+        this.input.aHeld = isDown;
+        if (this.input.shiftHeld) {
+          this.input.rollLeft = isDown ? 1 : 0;
+          if (isDown) this.input.yawRight = 0;
+        } else {
+          this.input.yawRight = isDown ? 1 : 0;
+          if (isDown) this.input.rollLeft = 0;
+        }
         break;
       case "KeyD":
-        this.input.yawLeft = isDown ? 1 : 0;
+        this.input.dHeld = isDown;
+        if (this.input.shiftHeld) {
+          this.input.rollRight = isDown ? 1 : 0;
+          if (isDown) this.input.yawLeft = 0;
+        } else {
+          this.input.yawLeft = isDown ? 1 : 0;
+          if (isDown) this.input.rollRight = 0;
+        }
         break;
       case "KeyW":
         this.input.pitchDown = isDown ? 1 : 0;
@@ -160,7 +200,7 @@ export class Car extends THREE.Group {
         break;
       case "ArrowRight":
         this.input.rollRight = isDown ? 1 : 0;
-        break
+        break;
       case "Space":
         if (isDown) this.ballCam = !this.ballCam;
         break;
