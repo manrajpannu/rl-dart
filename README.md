@@ -10,7 +10,6 @@ A Rocket League air roll trainer and visualization tool. This project helps play
 - Customizable car models (Octane, Fennec, etc.)
 - Camera controls and presets
 - lil-gui for live parameter tweaking
-- Stats panel for performance monitoring
 
 ## Getting Started
 
@@ -21,8 +20,8 @@ A Rocket League air roll trainer and visualization tool. This project helps play
 ### Installation
 1. Clone the repository:
    ```sh
-   git clone https://github.com/yourusername/rocketcar.git
-   cd rocketcar
+   git clone https://github.com/manrajpannu/rl-dart.git
+   cd rl-dart
    ```
 2. Install dependencies:
    ```sh
