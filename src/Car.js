@@ -14,17 +14,14 @@ const circleDeadzone = (x, y, deadzone = 0.10) => {
 };
 
 function circleToSquare(x, y) {
-  const absX = Math.abs(x);
-  const absY = Math.abs(y);
-
-  // If both are zero, return zero to avoid division by zero.
-  if (absX === 0 && absY === 0) return { x: 0, y: 0 };
-
-  let scale = Math.max(absX, absY);
-  return {
-    x: x / scale,
-    y: y / scale,
-  };
+  if (x === 0 && y === 0) return { x: 0, y: 0 }; // center
+  const r = Math.hypot(x, y);           // sqrt(x*x + y*y)
+  const cosT = x / r;
+  const sinT = y / r;
+  const m = Math.max(Math.abs(cosT), Math.abs(sinT));
+  // scale so circle edge maps to square edge
+  const scale = (m === 0) ? 0 : r / m;
+  return { x: cosT * scale, y: sinT * scale };
 }
 
 function  weightedLerp(current, target, weights, dt) {
@@ -305,6 +302,8 @@ handleController() {
     this.rotationVelocity.x += inputVec.x * this.rotationSpeed * dt;
     this.rotationVelocity.y += inputVec.y * this.rotationSpeed * dt;
     this.rotationVelocity.z += inputVec.z * this.rotationSpeed * 1.15 * dt;
+
+    
 
     // Apply drag
     const drag = new THREE.Vector3(this.airDragCoefficient, this.airDragCoefficient, this.airDragCoefficient);
