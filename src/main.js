@@ -99,44 +99,61 @@ const DEADZONE_CENTER_Y = deadzoneCanvas.height / 2;
 const deadzoneHistory = [];
 
 function drawDeadzone(yaw, pitch) {
-  // Add new dot
+  // Add new dot, interpolate if movement is large
+  let movementSpeed = 0;
+  if (deadzoneHistory.length > 0) {
+    const prev = deadzoneHistory[deadzoneHistory.length - 1];
+    const dx = yaw - prev.yaw;
+    const dy = pitch - prev.pitch;
+    movementSpeed = Math.sqrt(dx * dx + dy * dy);
+  }
   deadzoneHistory.push({ yaw, pitch, time: performance.now() });
-  if (deadzoneHistory.length > 100) deadzoneHistory.shift();
+  // Dynamically adjust history length: faster movement = shorter trail
+  const minLen = 25;
+  const maxLen = 75;
+  // Map movementSpeed [0, 0.2] to history length [maxLen, minLen]
+  let histLen = Math.round(maxLen - Math.min(movementSpeed, 0.2) / 0.2 * (maxLen - minLen));
+  if (deadzoneHistory.length > histLen) deadzoneHistory.shift();
 
   // Clear canvas
   deadzoneCtx.clearRect(0, 0, deadzoneCanvas.width, deadzoneCanvas.height);
 
-  // Draw faded dots and lines
+  // Draw yaw/pitch text above the box on the left
+  deadzoneCtx.save();
+  deadzoneCtx.font = '9px monospace';
+  deadzoneCtx.fillStyle = 'white';
+  deadzoneCtx.textAlign = 'left';
+  deadzoneCtx.textBaseline = 'top';
+  deadzoneCtx.fillText(`(${(-yaw).toFixed(4)}, ${pitch.toFixed(4)})`, 10, 10);
+  deadzoneCtx.restore();
+
+  // Draw dots and lines at full opacity
   deadzoneHistory.forEach((dot, i) => {
     // Convert yaw/pitch to canvas coordinates
     const x = DEADZONE_CENTER_X + (-dot.yaw) * DEADZONE_RADIUS;
     const y = DEADZONE_CENTER_Y + (-dot.pitch) * DEADZONE_RADIUS;
 
-    // Fade: newer dots are more opaque
-    const alpha = 0.2 + 0.8 * (i + 1) / deadzoneHistory.length;
-
     // Draw line to next dot
-    if (i < deadzoneHistory.length - 1) {
-      const nextDot = deadzoneHistory[i + 1];
-      const nextX = DEADZONE_CENTER_X + (-nextDot.yaw) * DEADZONE_RADIUS;
-      const nextY = DEADZONE_CENTER_Y + (-nextDot.pitch) * DEADZONE_RADIUS;
-      deadzoneCtx.save();
-      deadzoneCtx.globalAlpha = alpha * 0.7;
-      deadzoneCtx.beginPath();
-      deadzoneCtx.moveTo(x, y);
-      deadzoneCtx.lineTo(nextX, nextY);
-      deadzoneCtx.strokeStyle = '#888';
-      deadzoneCtx.lineWidth = 1;
-      deadzoneCtx.stroke();
-      deadzoneCtx.restore();
-    }
+    // if (i < deadzoneHistory.length - 1) {
+    //   const nextDot = deadzoneHistory[i + 1];
+    //   const nextX = DEADZONE_CENTER_X + (-nextDot.yaw) * DEADZONE_RADIUS;
+    //   const nextY = DEADZONE_CENTER_Y + (-nextDot.pitch) * DEADZONE_RADIUS;
+    //   deadzoneCtx.save();
+    //   deadzoneCtx.globalAlpha = 1.0;
+    //   deadzoneCtx.beginPath();
+    //   deadzoneCtx.moveTo(x, y);
+    //   deadzoneCtx.lineTo(nextX, nextY);
+    //   deadzoneCtx.strokeStyle = '#888';
+    //   deadzoneCtx.lineWidth = 1;
+    //   deadzoneCtx.stroke();
+    //   deadzoneCtx.restore();
+    // }
 
-    // Draw square
     deadzoneCtx.save();
-    deadzoneCtx.globalAlpha = alpha;
+    deadzoneCtx.globalAlpha = 1.0;
     deadzoneCtx.fillStyle = '#fff';
     deadzoneCtx.beginPath();
-    deadzoneCtx.rect(x - 2, y - 2, 4, 4); // 4x4 square centered at (x, y)
+    deadzoneCtx.arc(x, y, 1, 0, Math.PI * 2);
     deadzoneCtx.fill();
     deadzoneCtx.restore();
   });

@@ -91,7 +91,7 @@ export function createUI(car, ball, map, renderer) {
     const ballFolder = gui.addFolder('Ball');
     ballFolder.add(physics.ball, 'randomizerPreset', ['default', 'vertical']).name("Randomizer Preset")
     ballFolder.add(physics.ball, 'scale', 0, 5).name('Ball Scale').onChange( (value) => ball.updateBallScale(value));
-    ballFolder.add( physics.ball, 'hitWindowDuration', 0.1, 5 ).name('Hit Window Duration (s)');
+    ballFolder.add( physics.ball, 'hitWindowDuration', 0.01, 5 ).name('Hit Window Duration (s)');
     const timeOutFolder = ballFolder.addFolder('Timeout');
     timeOutFolder.add( physics.ball, 'timeout' ).name('Timeout');
     timeOutFolder.add( physics.ball, 'chaseTimeout', 0.1, 5 ).name('Chase Timeout (s)');
