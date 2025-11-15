@@ -69,19 +69,6 @@ export function createUI(car, ball, map, renderer) {
     
     // Physics Folder
     const physicsFolder = carFolder.addFolder('Physics');
-    physicsFolder.add( car, 'rotationPreset', [ 'default', 'snappy' ] ).name('Rotation Preset').onChange((preset) => {
-        switch (preset) {
-            case 'default':
-                car.rotationSpeed = 21
-                car.airDragCoefficient = 0.975
-                break;
-                case 'snappy':
-                    car.rotationSpeed = 100
-                    car.airDragCoefficient = 0.88
-                    default:
-                        break;
-                    }
-                })
     physicsFolder.add( car, 'rotationSpeed', 0, 100).name('Rotation Speed')
     physicsFolder.add( car, 'airDragCoefficient', 0, 1).name('Air Drag Coefficient')
     physicsFolder.close();
