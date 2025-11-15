@@ -46,7 +46,9 @@ export class Car extends THREE.Group {
     this.ballCam = true;
     this.Up = new THREE.Vector3(0, 1, 0);
     this.forward = new THREE.Vector3(0, 0, -1);
-    
+    this.rotation.x = Math.PI / 2;
+    this._lastInertia = { x: '-', y: '-', z: '-' };
+
     // Visuals
     this.showLine = false;
     this.showAxisOfRotationLine = true;
@@ -54,10 +56,11 @@ export class Car extends THREE.Group {
 
     // Physics
     this.rotationPreset = 'default';
-    this.rotationSpeed = physics.car.rotationSpeed;
     this.rotationVelocity = new THREE.Vector3();
+    this.rotationSpeed = physics.car.rotationSpeed;
+    this.airRollRotationSpeed = physics.car.airRollRotationSpeed;
     this.airDragCoefficient = physics.car.airDragCoefficient;
-    this.maxRotationSpeed = physics.car.maxRotationSpeed;
+    this.airRollDragCoefficient = physics.car.airRollDragCoefficient;
 
     // change
     this.airRollLeft = true;
@@ -90,6 +93,14 @@ export class Car extends THREE.Group {
     this.torusDrawOnTop = false;
     this.add(this.torus);
 
+    // Inertia timers for X, Y, Z
+    this.inertiaTimerX = 0;
+    this.inertiaTimerY = 0;
+    this.inertiaTimerZ = 0;
+    // Last inertia times for X, Y, Z
+    this.lastInertiaX = 0;
+    this.lastInertiaY = 0;
+    this.lastInertiaZ = 0;
     
     this.input = {
       yawLeft: 0,
@@ -289,6 +300,7 @@ handleController() {
  
   applyInputs(dt) {
 
+
     let { controller_yaw, controller_pitch, controller_roll } = this.handleController();
 
     const inputVec = new THREE.Vector3();
@@ -301,21 +313,73 @@ handleController() {
     // Update rotational velocity
     this.rotationVelocity.x += inputVec.x * this.rotationSpeed * dt;
     this.rotationVelocity.y += inputVec.y * this.rotationSpeed * dt;
-    this.rotationVelocity.z += inputVec.z * this.rotationSpeed * 1.15 * dt;
+    this.rotationVelocity.z += inputVec.z * this.airRollRotationSpeed * dt;
 
     
 
+
+  // --- Real-time inertia timers, preserve last value when stopped ---
+  // X (Pitch)
+  if (Math.abs(this.rotationVelocity.x) > 1e-3 && controller_pitch === 0) {
+    this.inertiaTimerX += dt;
+  } else if (this.inertiaTimerX > 0) {
+    this.lastInertiaX = this.inertiaTimerX;
+    this.inertiaTimerX = 0;
+  }
+  // Y (Yaw)
+  if (Math.abs(this.rotationVelocity.y) > 1e-3 && controller_yaw === 0) {
+    this.inertiaTimerY += dt;
+  } else if (this.inertiaTimerY > 0) {
+    this.lastInertiaY = this.inertiaTimerY;
+    this.inertiaTimerY = 0;
+  }
+  // Z (Roll)
+  if (Math.abs(this.rotationVelocity.z) > 1e-3 && controller_roll === 0) {
+    this.inertiaTimerZ += dt;
+  } else if (this.inertiaTimerZ > 0) {
+    this.lastInertiaZ = this.inertiaTimerZ;
+    this.inertiaTimerZ = 0;
+  }
+
+  // Display full rotation times and inertia timers in top left of HUD canvas
+  if (typeof window !== 'undefined') {
+    const hudCanvas = document.getElementById('hud');
+    if (hudCanvas) {
+      const hudCtx = hudCanvas.getContext('2d');
+      hudCtx.save();
+      hudCtx.clearRect(0, 0, 120, 200);
+      hudCtx.font = '11px monospace';
+      hudCtx.fillStyle = 'white';
+      hudCtx.textAlign = 'left';
+      hudCtx.textBaseline = 'top';
+      const timeX = Math.abs(this.rotationVelocity.x) > 1e-6 ? (2 * Math.PI) / Math.abs(this.rotationVelocity.x) : Infinity;
+      const timeY = Math.abs(this.rotationVelocity.y) > 1e-6 ? (2 * Math.PI) / Math.abs(this.rotationVelocity.y) : Infinity;
+      const timeZ = Math.abs(this.rotationVelocity.z) > 1e-6 ? (2 * Math.PI) / Math.abs(this.rotationVelocity.z) : Infinity;
+      hudCtx.fillText(`Full rot (s):`, 4, 4);
+      hudCtx.fillText(`X: ${timeX === Infinity ? '-' : timeX.toFixed(2)}`, 4, 16);
+      hudCtx.fillText(`Y: ${timeY === Infinity ? '-' : timeY.toFixed(2)}`, 4, 27);
+      hudCtx.fillText(`Z: ${timeZ === Infinity ? '-' : timeZ.toFixed(2)}`, 4, 38);
+
+      hudCtx.fillText(`Inertia (s):`, 4, 50);
+      hudCtx.fillText(`X: ${(this.inertiaTimerX > 0 ? this.inertiaTimerX : this.lastInertiaX) > 0 ? (this.inertiaTimerX > 0 ? this.inertiaTimerX : this.lastInertiaX).toFixed(2) : '-'}`, 4, 61);
+      hudCtx.fillText(`Y: ${(this.inertiaTimerY > 0 ? this.inertiaTimerY : this.lastInertiaY) > 0 ? (this.inertiaTimerY > 0 ? this.inertiaTimerY : this.lastInertiaY).toFixed(2) : '-'}`, 4, 72);
+      hudCtx.fillText(`Z: ${(this.inertiaTimerZ > 0 ? this.inertiaTimerZ : this.lastInertiaZ) > 0 ? (this.inertiaTimerZ > 0 ? this.inertiaTimerZ : this.lastInertiaZ).toFixed(2) : '-'}`, 4, 83);
+      hudCtx.restore();
+    }
+  }
+  // ...existing code...
+
     // Apply drag
-    const drag = new THREE.Vector3(this.airDragCoefficient, this.airDragCoefficient, this.airDragCoefficient);
+    const drag = new THREE.Vector3(this.airDragCoefficient, this.airDragCoefficient, this.airRollDragCoefficient);
     this.rotationVelocity.multiply(drag);
 
     if (this.rotationVelocity.lengthSq() < 1e-3)
       this.rotationVelocity.set(0, 0, 0);
 
     // Clamp
-    this.rotationVelocity.x = THREE.MathUtils.clamp(this.rotationVelocity.x, -this.maxRotationSpeed, this.maxRotationSpeed);
-    this.rotationVelocity.y = THREE.MathUtils.clamp(this.rotationVelocity.y, -this.maxRotationSpeed, this.maxRotationSpeed);
-    this.rotationVelocity.z = THREE.MathUtils.clamp(this.rotationVelocity.z, -this.maxRotationSpeed * 1.2, this.maxRotationSpeed * 1.2);
+    // this.rotationVelocity.x = THREE.MathUtils.clamp(this.rotationVelocity.x, -this.maxRotationSpeed, this.maxRotationSpeed);
+    // this.rotationVelocity.y = THREE.MathUtils.clamp(this.rotationVelocity.y, -this.maxRotationSpeed, this.maxRotationSpeed);
+    // this.rotationVelocity.z = THREE.MathUtils.clamp(this.rotationVelocity.z, -this.maxRotationSpeed * 1.2, this.maxRotationSpeed * 1.2);
 
     const rotMat = new THREE.Matrix4();
 

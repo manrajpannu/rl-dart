@@ -133,22 +133,6 @@ function drawDeadzone(yaw, pitch) {
     const x = DEADZONE_CENTER_X + (-dot.yaw) * DEADZONE_RADIUS;
     const y = DEADZONE_CENTER_Y + (-dot.pitch) * DEADZONE_RADIUS;
 
-    // Draw line to next dot
-    // if (i < deadzoneHistory.length - 1) {
-    //   const nextDot = deadzoneHistory[i + 1];
-    //   const nextX = DEADZONE_CENTER_X + (-nextDot.yaw) * DEADZONE_RADIUS;
-    //   const nextY = DEADZONE_CENTER_Y + (-nextDot.pitch) * DEADZONE_RADIUS;
-    //   deadzoneCtx.save();
-    //   deadzoneCtx.globalAlpha = 1.0;
-    //   deadzoneCtx.beginPath();
-    //   deadzoneCtx.moveTo(x, y);
-    //   deadzoneCtx.lineTo(nextX, nextY);
-    //   deadzoneCtx.strokeStyle = '#888';
-    //   deadzoneCtx.lineWidth = 1;
-    //   deadzoneCtx.stroke();
-    //   deadzoneCtx.restore();
-    // }
-
     deadzoneCtx.save();
     deadzoneCtx.globalAlpha = 1.0;
     deadzoneCtx.fillStyle = '#fff';

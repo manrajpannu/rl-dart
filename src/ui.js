@@ -84,7 +84,6 @@ export function createUI(car, ball, map, renderer) {
                 })
     physicsFolder.add( car, 'rotationSpeed', 0, 100).name('Rotation Speed')
     physicsFolder.add( car, 'airDragCoefficient', 0, 1).name('Air Drag Coefficient')
-    physicsFolder.add( car, 'maxRotationSpeed', 0, 100).name('Max Rotation Speed')
     physicsFolder.close();
 
     // Ball Folder
