@@ -47,7 +47,7 @@ scene.add(ball);
 
 const map = new Map(40);
 map.gen();
-map.position.y = -5;
+map.position.y = -15;
 scene.add(map);
 
 const car = new Car(scene);

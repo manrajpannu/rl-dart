@@ -310,6 +310,7 @@ handleController() {
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 
+
     // Update rotational velocity
     this.rotationVelocity.x += inputVec.x * this.rotationSpeed * dt;
     this.rotationVelocity.y += inputVec.y * this.rotationSpeed * dt;
@@ -502,6 +503,7 @@ handleController() {
     let forwardDir = new THREE.Vector3();
     let lookAt = new THREE.Vector3();
     let weights = new THREE.Vector3(0, 0, 0);
+    const alpha = 0.008; // Smoothing factor
 
     if (this.ballCam) {
       forwardDir.subVectors(ballPosition, this.position);
@@ -521,12 +523,12 @@ handleController() {
       .sub(forwardDir.multiplyScalar(physics.camera.distance))
       .add(this.Up.clone().multiplyScalar(physics.camera.height));
 
-    this.ballCam ?  this.camera.position.lerp(desiredCameraPos, dt) :  weightedLerp(this.camera.position, desiredCameraPos, weights, dt)
+    this.ballCam ?  this.camera.position.lerp(desiredCameraPos, alpha) :  weightedLerp(this.camera.position, desiredCameraPos, weights, alpha)
     
     const smoothLookAt = new THREE.Vector3().lerpVectors(
       this.LookAt,
       lookAt,
-      dt
+      alpha
     );
     this.camera.lookAt(smoothLookAt);
   }

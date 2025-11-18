@@ -47,7 +47,11 @@ export class Ball extends THREE.Group {
 
     staticScenarioDefault() {
         this.processHit()
-        this.updateBallPos(new THREE.Vector3(Math.random() * 10 - 5, 2, Math.random() * 10 - 5));
+        this.updateBallPos(new THREE.Vector3(
+            Math.round(Math.random() * 10 - 5),
+            Math.round(Math.random() * 10 - 5),
+            Math.round(Math.random() * 10 - 5)
+        ));
     }
 
     staticScenarioHigh() {

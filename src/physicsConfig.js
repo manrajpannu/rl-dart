@@ -3,7 +3,7 @@ export const physics = {
         body: 'octane',
         rotationSpeed: 21.0,
         airDragCoefficient: 0.975,
-        airRollRotationSpeed: 29,
+        airRollRotationSpeed: 30,
         airRollDragCoefficient: 0.962,
         torusBaseScale: 1.0,
     },
