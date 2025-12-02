@@ -9,7 +9,7 @@ const planeMat = new THREE.MeshPhongMaterial( {
 
 export class Map extends THREE.Group {
 
-    constructor(planeSize = 40) {
+    constructor(planeSize = 80) {
         super();
         this.planeSize = planeSize;
     }

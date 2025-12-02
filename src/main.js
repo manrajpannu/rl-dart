@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { Ball } from './ball';
-import { Map } from './map';
-import { Car } from './car';
-import { createUI } from './Ui';
+import { Map } from './Map';
+import { Car } from './Car';
+import { createUI } from './ui';
 import { physics } from './physicsConfig';
 
 const container = document.getElementById('three-container');
@@ -45,7 +45,7 @@ function setupLights () {
 const ball = new Ball();
 scene.add(ball);
 
-const map = new Map(40);
+const map = new Map();
 map.gen();
 map.position.y = -15;
 scene.add(map);
@@ -121,7 +121,7 @@ function drawDeadzone(yaw, pitch) {
   // Draw yaw/pitch text above the box on the left
   deadzoneCtx.save();
   deadzoneCtx.font = '9px monospace';
-  deadzoneCtx.fillStyle = 'white';
+  deadzoneCtx.fillStyle = 'black';
   deadzoneCtx.textAlign = 'left';
   deadzoneCtx.textBaseline = 'top';
   deadzoneCtx.fillText(`(${(-yaw).toFixed(4)}, ${pitch.toFixed(4)})`, 10, 10);
@@ -135,7 +135,7 @@ function drawDeadzone(yaw, pitch) {
 
     deadzoneCtx.save();
     deadzoneCtx.globalAlpha = 1.0;
-    deadzoneCtx.fillStyle = '#fff';
+    deadzoneCtx.fillStyle = '#ffffffff';
     deadzoneCtx.beginPath();
     deadzoneCtx.arc(x, y, 1, 0, Math.PI * 2);
     deadzoneCtx.fill();
@@ -165,6 +165,7 @@ function animate() {
   while (accumulator >= FIXED_DT) {
     ball.intersectsLine(car.getForwardLine(), FIXED_DT);
     car.applyInputs(FIXED_DT);
+    ball.updateRandomMovement(FIXED_DT);
     accumulator -= FIXED_DT;
     // Draw deadzone dots using controller yaw/pitch
     const { controller_pitch, controller_yaw } = car.handleController();

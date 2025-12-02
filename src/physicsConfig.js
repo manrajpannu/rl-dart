@@ -22,9 +22,9 @@ export const physics = {
         torusBaseScale: 1.0,
     },
     camera: {
-        fov: 75,
-        distance: 6,
-        height: 4,
+        fov: 90,
+        distance: 3.8,
+        height: 2.0,
     },
     ball: {
         hitWindowDuration: 1.0,
