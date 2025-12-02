@@ -41,7 +41,8 @@ export function createUI(car, ball, map, renderer) {
     const controllerFolder = gui.addFolder('Controller');
     // Deadzone Canvas Toggle
     const deadzoneCanvas = document.getElementById('deadzone');
-    const deadzoneState = { showDeadzone: true };
+    deadzoneCanvas.style.display = 'none';
+    const deadzoneState = { showDeadzone: false };
     controllerFolder.add(deadzoneState, 'showDeadzone').name('Show Deadzone').onChange((show) => {
         deadzoneCanvas.style.display = show ? 'block' : 'none';
     });
@@ -65,6 +66,14 @@ export function createUI(car, ball, map, renderer) {
         helperDonutFolder.add( car, 'showTorus').name('Show Helper Donut')
         helperDonutFolder.add( car, 'torusDrawOnTop').name('Always On Top').onChange((value) => car.setTorusDrawOnTop(value));
         helperDonutFolder.add( physics.car, 'torusBaseScale', 0, 2 ).name('Donut Scale');
+
+        // Color picker for helper donut
+        const donutColorObj = { color: '#ff00ff' };
+        helperDonutFolder.addColor(donutColorObj, 'color').name('Donut Color').onChange((value) => {
+            if (car._torusMaterial) {
+                car._torusMaterial.color.set(value);
+            }
+        });
 
     
     // Physics Folder
@@ -92,6 +101,14 @@ export function createUI(car, ball, map, renderer) {
 
     // Ball Folder
     const ballFolder = gui.addFolder('Ball');
+
+    // Movement subfolder
+    const movementFolder = ballFolder.addFolder('Movement');
+    // Button for random movement
+    movementFolder.add(ball, '_randomMoveEnabled').name('Random Ball Movement');
+    // Slider for flowySpeed
+    movementFolder.add(ball, 'flowySpeed', 0.1, 10).name('Flowy Speed');
+
     ballFolder.add(physics.ball, 'randomizerPreset', ['default', 'vertical']).name("Randomizer Preset")
     ballFolder.add(physics.ball, 'scale', 0, 5).name('Ball Scale').onChange( (value) => ball.updateBallScale(value));
     ballFolder.add( physics.ball, 'hitWindowDuration', 0.01, 5 ).name('Hit Window Duration (s)');

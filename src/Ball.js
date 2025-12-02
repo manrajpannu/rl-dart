@@ -3,6 +3,47 @@ import { physics } from './physicsConfig.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export class Ball extends THREE.Group {
+        // Flowy movement speed (can be set externally)
+        flowySpeed = 2.5;
+
+        // Internal state for Bezier curve movement
+        _bezierT = 0;
+        _bezierDuration = 2.0;
+        _bezierPoints = null;
+
+        // Helper to generate a random point within bounds
+        _randomPointInBounds() {
+            const bounds = { x: 10, y: 0.5, z: 10 };
+            return new THREE.Vector3(
+                (Math.random() - 0.5) * 2 * bounds.x,
+                bounds.y + Math.random() * 7.5, // y in [0.5, 8]
+                (Math.random() - 0.5) * 2 * bounds.z
+            );
+        }
+
+        // Helper to start a new Bezier segment from current position
+        _startNewBezier() {
+            const p0 = this.position.clone();
+            const p3 = this._randomPointInBounds();
+            // Control points: random directions from p0 and p3
+            const dir0 = new THREE.Vector3(
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8
+            );
+            const dir1 = new THREE.Vector3(
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8,
+                (Math.random() - 0.5) * 8
+            );
+            const p1 = p0.clone().add(dir0);
+            const p2 = p3.clone().add(dir1);
+            this._bezierPoints = [p0, p1, p2, p3];
+            // Duration based on distance and speed
+            const dist = p0.distanceTo(p3);
+            this._bezierDuration = dist / this.flowySpeed;
+            this._bezierT = 0;
+        }
     green = new THREE.Color(0x55ff55);
     black = new THREE.Color(0x000000);
     red = new THREE.Color(0xff5555);
@@ -32,6 +73,12 @@ export class Ball extends THREE.Group {
 
         this.position.copy(position);
         this.boundingSphere = new THREE.Sphere(this.position.clone(), this.radius);
+        this._randomVelocity = new THREE.Vector3(
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10,
+            (Math.random() - 0.5) * 10
+        );
+        this._randomMoveEnabled = false;
     }
 
     updateBallPos(newPosition) {
@@ -66,7 +113,7 @@ export class Ball extends THREE.Group {
         this.sphere.scale.set(newScale + 0.05, newScale + 0.05, newScale + 0.05);
     }
 
-    intersectsLine(ray, dt) {
+     intersectsLine(ray, dt) {
         this.chaseTimer += dt
         if (physics.ball.timeout && this.chaseTimer > physics.ball.chaseTimeout)
         {
@@ -82,13 +129,13 @@ export class Ball extends THREE.Group {
             if (this.targetTimer > physics.ball.hitWindowDuration) {
                 switch (physics.ball.randomizerPreset) {
                     case 'default':
-                        this.staticScenarioDefault()
+                        this.staticScenarioDefault();
                         break;
                     case 'vertical':
-                        this.staticScenarioHigh()
+                        this.staticScenarioHigh();
                         break;
                     default:
-                        this.staticScenarioDefault
+                        this.staticScenarioDefault();
                         break;
                 }
             }
@@ -99,5 +146,36 @@ export class Ball extends THREE.Group {
             this.targetTimer = 0;
             return false;
         }
+    }
+
+    updateRandomMovement(dt = 0.016) {
+        if (!this._randomMoveEnabled) return;
+        // If no bezier, start one
+        if (!this._bezierPoints) {
+            this._startNewBezier();
+        }
+        // Advance t
+        this._bezierT += dt / this._bezierDuration;
+        if (this._bezierT > 1) {
+            // Snap to end, start new curve
+            this._startNewBezier(this._bezierPoints[3]);
+            return;
+        }
+        // Cubic Bezier interpolation
+        const [p0, p1, p2, p3] = this._bezierPoints;
+        const t = this._bezierT;
+        // De Casteljau's algorithm for cubic Bezier
+        const a = p0.clone().lerp(p1, t);
+        const b = p1.clone().lerp(p2, t);
+        const c = p2.clone().lerp(p3, t);
+        const d = a.lerp(b, t);
+        const e = b.lerp(c, t);
+        const pos = d.lerp(e, t);
+        this.updateBallPos(pos);
+    }
+
+    // Call this in your main update loop to animate the ball
+    update(dt) {
+        this.updateRandomMovement(dt);
     }
 }
