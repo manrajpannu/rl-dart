@@ -69,8 +69,25 @@ export function createUI(car, ball, map, renderer) {
     
     // Physics Folder
     const physicsFolder = carFolder.addFolder('Physics');
-    physicsFolder.add( car, 'rotationSpeed', 0, 100).name('Rotation Speed')
-    physicsFolder.add( car, 'airDragCoefficient', 0, 1).name('Air Drag Coefficient')
+
+    // Pitch subfolder
+    const pitchFolder = physicsFolder.addFolder('Pitch');
+    pitchFolder.add(car.rotationSpeed, 'x', 0, 100).name('Pitch Rotation Speed');
+    pitchFolder.add(car.airDragCoefficient, 'x', 0.95, 1).name('Pitch Drag');
+    pitchFolder.add(car.maxRotationSpeed, 'x', 0, 100).name('Pitch Max Speed');
+
+    // Yaw subfolder
+    const yawFolder = physicsFolder.addFolder('Yaw');
+    yawFolder.add(car.rotationSpeed, 'y', 0, 100).name('Yaw Rotation Speed');
+    yawFolder.add(car.airDragCoefficient, 'y', 0.95, 1).name('Yaw Drag');
+    yawFolder.add(car.maxRotationSpeed, 'y', 0, 100).name('Yaw Max Speed');
+
+    // Roll subfolder
+    const rollFolder = physicsFolder.addFolder('Roll');
+    rollFolder.add(car.rotationSpeed, 'z', 0, 100).name('Roll Rotation Speed');
+    rollFolder.add(car.airDragCoefficient, 'z', 0.95, 1).name('Roll Drag');
+    rollFolder.add(car.maxRotationSpeed, 'z', 0, 100).name('Roll Max Speed');
+
     physicsFolder.close();
 
     // Ball Folder

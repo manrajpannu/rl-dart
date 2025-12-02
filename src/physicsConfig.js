@@ -1,10 +1,24 @@
+import { max } from "three/tsl";
+
 export const physics = {
     car: {
         body: 'octane',
-        rotationSpeed: 21.0,
-        airDragCoefficient: 0.975,
-        airRollRotationSpeed: 30,
-        airRollDragCoefficient: 0.962,
+        rotationSpeed: {
+            x: 21.0,
+            y: 21.0,
+            z: 30.0
+        },
+        airDragCoefficient: {
+            x: 0.975,
+            y: 0.975,
+            z: 0.962
+        },
+        maxRotationSpeed: {
+            x: 5.55,
+            y: 5.55,
+            z: 5.55
+        },
+
         torusBaseScale: 1.0,
     },
     camera: {

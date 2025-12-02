@@ -48,19 +48,17 @@ export class Car extends THREE.Group {
     this.forward = new THREE.Vector3(0, 0, -1);
     this.rotation.x = Math.PI / 2;
     this._lastInertia = { x: '-', y: '-', z: '-' };
-
+    
     // Visuals
     this.showLine = false;
     this.showAxisOfRotationLine = true;
     this.showTorus = true;
-
+    
     // Physics
-    this.rotationPreset = 'default';
     this.rotationVelocity = new THREE.Vector3();
     this.rotationSpeed = physics.car.rotationSpeed;
-    this.airRollRotationSpeed = physics.car.airRollRotationSpeed;
+    this.maxRotationSpeed = physics.car.maxRotationSpeed;
     this.airDragCoefficient = physics.car.airDragCoefficient;
-    this.airRollDragCoefficient = physics.car.airRollDragCoefficient;
 
     // change
     this.airRollLeft = true;
@@ -218,7 +216,7 @@ export class Car extends THREE.Group {
  
   }
 
-handleController() {
+  handleController() {
   let pitch = 0, yaw = 0, roll = 0;
 
   if (this.gamepadIndex !== null) {
@@ -312,9 +310,9 @@ handleController() {
 
 
     // Update rotational velocity
-    this.rotationVelocity.x += inputVec.x * this.rotationSpeed * dt;
-    this.rotationVelocity.y += inputVec.y * this.rotationSpeed * dt;
-    this.rotationVelocity.z += inputVec.z * this.airRollRotationSpeed * dt;
+    this.rotationVelocity.x += inputVec.x * this.rotationSpeed.x * dt;
+    this.rotationVelocity.y += inputVec.y * this.rotationSpeed.y * dt;
+    this.rotationVelocity.z += inputVec.z * this.rotationSpeed.z * dt;
 
     
 
@@ -371,16 +369,16 @@ handleController() {
   // ...existing code...
 
     // Apply drag
-    const drag = new THREE.Vector3(this.airDragCoefficient, this.airDragCoefficient, this.airRollDragCoefficient);
+    const drag = new THREE.Vector3(this.airDragCoefficient.x, this.airDragCoefficient.y, this.airDragCoefficient.z);
     this.rotationVelocity.multiply(drag);
 
     if (this.rotationVelocity.lengthSq() < 1e-3)
       this.rotationVelocity.set(0, 0, 0);
 
     // Clamp
-    // this.rotationVelocity.x = THREE.MathUtils.clamp(this.rotationVelocity.x, -this.maxRotationSpeed, this.maxRotationSpeed);
-    // this.rotationVelocity.y = THREE.MathUtils.clamp(this.rotationVelocity.y, -this.maxRotationSpeed, this.maxRotationSpeed);
-    // this.rotationVelocity.z = THREE.MathUtils.clamp(this.rotationVelocity.z, -this.maxRotationSpeed * 1.2, this.maxRotationSpeed * 1.2);
+    // this.rotationVelocity.x = THREE.MathUtils.clamp(this.rotationVelocity.x, -this.maxRotationSpeed.x, this.maxRotationSpeed.x);
+    // this.rotationVelocity.y = THREE.MathUtils.clamp(this.rotationVelocity.y, -this.maxRotationSpeed.y, this.maxRotationSpeed.y);
+    // this.rotationVelocity.z = THREE.MathUtils.clamp(this.rotationVelocity.z, -this.maxRotationSpeed.z, this.maxRotationSpeed.z);
 
     const rotMat = new THREE.Matrix4();
 
