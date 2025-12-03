@@ -123,23 +123,33 @@ export class Ball extends THREE.Group {
         if (ray.intersectsSphere(this.boundingSphere)) {
             this.intersecting = true;
             this.targetTimer += dt;
-            const mixedColor = new THREE.Color();
-            mixedColor.lerpColors(this.red, this.green, this.targetTimer / physics.ball.hitWindowDuration);
-            this.sphere.material.color.set(mixedColor);
-            if (this.targetTimer > physics.ball.hitWindowDuration) {
-                switch (physics.ball.randomizerPreset) {
-                    case 'default':
-                        this.staticScenarioDefault();
-                        break;
-                    case 'vertical':
-                        this.staticScenarioHigh();
-                        break;
-                    default:
-                        this.staticScenarioDefault();
-                        break;
+            if (this._randomMoveEnabled) {
+                // Set sphere color to rainbow, changing every frame
+                const rainbowColor = new THREE.Color();
+                // Use time to cycle hue
+                const hue = (performance.now() * 0.1 % 360) / 360;
+                rainbowColor.setHSL(hue, 1, 0.5);
+                this.sphere.material.color.set(rainbowColor);
+            } else {
+                // Normal color logic
+                const mixedColor = new THREE.Color();
+                mixedColor.lerpColors(this.red, this.green, this.targetTimer / physics.ball.hitWindowDuration);
+                this.sphere.material.color.set(mixedColor);
+                if (this.targetTimer > physics.ball.hitWindowDuration) {
+                    switch (physics.ball.randomizerPreset) {
+                        case 'default':
+                            this.staticScenarioDefault();
+                            break;
+                        case 'vertical':
+                            this.staticScenarioHigh();
+                            break;
+                        default:
+                            this.staticScenarioDefault();
+                            break;
+                    }
                 }
+                return true;
             }
-            return true;
         } else {
             this.intersecting = false;
             this.sphere.material.color.set(this.red);

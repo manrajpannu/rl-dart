@@ -387,6 +387,7 @@ export class Car extends THREE.Group {
     // --- Apply rotation matrix to model ---
     this.matrix.multiply(rotMat);
     this.matrix.decompose(this.position, this.quaternion, this.scale);
+    this.scale.set(1, 1, 1);
 
     const axis = this.findAxisOfRotation(rotMat);
     this.showAxisOfRotation(axis)

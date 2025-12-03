@@ -6,7 +6,7 @@ export const physics = {
         rotationSpeed: {
             x: 21.0,
             y: 21.0,
-            z: 30.0
+            z: 34.0
         },
         airDragCoefficient: {
             x: 0.975,

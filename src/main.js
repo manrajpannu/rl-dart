@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
-import { Ball } from './ball';
+import { Ball } from './Ball';
 import { Map } from './Map';
 import { Car } from './Car';
 import { createUI } from './ui';
