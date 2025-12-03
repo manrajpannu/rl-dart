@@ -12,15 +12,13 @@ function loadPreset(gui) {
 }
 
 
-function youtuberMode(mode, ball, map, renderer)
+function youtuberMode(mode, map, renderer)
 {
     if (mode) {
         renderer.setClearColor(0x00ff00);
-        ball.visible = false;
         map.visible = false;
     } else {
         renderer.setClearColor("darkgrey");
-        ball.visible = true;
         map.visible = true;
     }
 
@@ -34,12 +32,15 @@ export function createUI(car, ball, map, renderer) {
     const worldFolder = gui.addFolder('World');
     worldFolder.add(physics.world, 'gameSpeed', 0, 1).name("Game Speed");
     worldFolder.add({ youtuberMode: false }, 'youtuberMode').name('Youtuber Mode').onChange((mode) => {
-        youtuberMode(mode, ball, map, renderer);
+        youtuberMode(mode, map, renderer);
     });
 
     // Controller Folder
     const controllerFolder = gui.addFolder('Controller');
     // Deadzone Canvas Toggle
+   
+    controllerFolder.add(car, 'airRollLeftButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Left Button');
+    controllerFolder.add(car, 'airRollRightButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Right Button');
     const deadzoneCanvas = document.getElementById('deadzone');
     deadzoneCanvas.style.display = 'none';
     const deadzoneState = { showDeadzone: false };
@@ -53,9 +54,8 @@ export function createUI(car, ball, map, renderer) {
 
     // Car Folder
     const carFolder = gui.addFolder('Car');
+
     carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
-    carFolder.add(car, 'airRollLeft').name('Air Roll Left');
-    
     // Visuals Folder
     const visualsFolder = carFolder.addFolder('Visuals');
     visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => car.updateVisibility());
@@ -99,19 +99,26 @@ export function createUI(car, ball, map, renderer) {
 
     physicsFolder.close();
 
+
     // Ball Folder
     const ballFolder = gui.addFolder('Ball');
 
+    // Show/Hide Ball button
+    const ballVisibility = { visible: true };
+    ballFolder.add(ballVisibility, 'visible').name('Show Ball').onChange((v) => {
+        ball.visible = v;
+    });
+
+    
+    ballFolder.add(physics.ball, 'randomizerPreset', ['default', 'vertical']).name("Randomizer Preset")
+    ballFolder.add(physics.ball, 'scale', 0, 5).name('Ball Scale').onChange( (value) => ball.updateBallScale(value));
+    ballFolder.add( physics.ball, 'hitWindowDuration', 0.01, 5 ).name('Hit Window Duration (s)');
     // Movement subfolder
     const movementFolder = ballFolder.addFolder('Movement');
     // Button for random movement
     movementFolder.add(ball, '_randomMoveEnabled').name('Random Ball Movement');
     // Slider for flowySpeed
     movementFolder.add(ball, 'flowySpeed', 0.1, 10).name('Flowy Speed');
-
-    ballFolder.add(physics.ball, 'randomizerPreset', ['default', 'vertical']).name("Randomizer Preset")
-    ballFolder.add(physics.ball, 'scale', 0, 5).name('Ball Scale').onChange( (value) => ball.updateBallScale(value));
-    ballFolder.add( physics.ball, 'hitWindowDuration', 0.01, 5 ).name('Hit Window Duration (s)');
     const timeOutFolder = ballFolder.addFolder('Timeout');
     timeOutFolder.add( physics.ball, 'timeout' ).name('Timeout');
     timeOutFolder.add( physics.ball, 'chaseTimeout', 0.1, 5 ).name('Chase Timeout (s)');

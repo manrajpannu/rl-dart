@@ -38,7 +38,7 @@ export class Car extends THREE.Group {
   constructor(scene) {
     super();
     this.scene = scene;
-
+    
     // Car 
     this.carModels = new Map();
     this.currentModel = null;
@@ -59,7 +59,7 @@ export class Car extends THREE.Group {
     this.rotationSpeed = physics.car.rotationSpeed;
     this.maxRotationSpeed = physics.car.maxRotationSpeed;
     this.airDragCoefficient = physics.car.airDragCoefficient;
-
+    
     // change
     this.airRollLeft = true;
     
@@ -81,7 +81,7 @@ export class Car extends THREE.Group {
     this._rotationLine = new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({ color: 'blue' }));
     this._rotationLine.visible = false;
     this.add(this._rotationLine);
-
+    
     // Helper Donut
     this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 32, 32);
     this._torusMaterial = new THREE.MeshBasicMaterial({ color: 'magenta'});
@@ -90,7 +90,7 @@ export class Car extends THREE.Group {
     this.torus.rotation.x = degToRad(90);
     this.torusDrawOnTop = false;
     this.add(this.torus);
-
+    
     // Inertia timers for X, Y, Z
     this.inertiaTimerX = 0;
     this.inertiaTimerY = 0;
@@ -109,7 +109,7 @@ export class Car extends THREE.Group {
       rollRight: 0,
       shiftHeld: false,
     };
-
+    
     // Controller state
     this.controllerDeadzone = 0.15;
     this.controllerDeadzoneType = 'cross'; 
@@ -117,12 +117,15 @@ export class Car extends THREE.Group {
     this.gamepadIndex = null;
     window.addEventListener('gamepadconnected', (e) => this.gamepadIndex = e.gamepad.index);
     window.addEventListener('gamepaddisconnected', (e) => {if (this.gamepadIndex === e.gamepad.index) this.gamepadIndex = null});
-
+    // Controller button mappings for air roll left/right
+    this.airRollLeftButton = 2; // Default LB
+    this.airRollRightButton = 3; // Default RB
+    
     // Keyboard input
     document.addEventListener("keydown", (e) => this.handleKey(e.code, true));
     document.addEventListener("keyup", (e) => this.handleKey(e.code, false));
   }
-
+  
   setTorusDrawOnTop(enable) {
     if (!this.torus) return;
     this._torusDrawOnTop = Boolean(enable);
@@ -279,15 +282,11 @@ export class Car extends THREE.Group {
       pitch = THREE.MathUtils.clamp(y, -1, 1);
       yaw   = -THREE.MathUtils.clamp(x, -1, 1);
 
-      // Simplified roll logic (press any LB/RB/X/Y/A/B)
-      const pressed =
-        gp.buttons[0]?.pressed || gp.buttons[1]?.pressed ||
-        gp.buttons[2]?.pressed || gp.buttons[3]?.pressed ||
-        gp.buttons[4]?.pressed || gp.buttons[5]?.pressed;
-
-      if (pressed) {
-        roll = this.airRollLeft ? -1 : 1;
-      }
+      // Air roll left/right mapping
+      const leftPressed = gp.buttons[this.airRollLeftButton]?.pressed;
+      const rightPressed = gp.buttons[this.airRollRightButton]?.pressed;
+      if (leftPressed) roll = -1;
+      else if (rightPressed) roll = 1;
     }
   }
 

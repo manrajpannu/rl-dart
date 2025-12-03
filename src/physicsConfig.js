@@ -2,7 +2,7 @@ import { max } from "three/tsl";
 
 export const physics = {
     car: {
-        body: 'octane',
+        body: 'fennec',
         rotationSpeed: {
             x: 21.0,
             y: 21.0,

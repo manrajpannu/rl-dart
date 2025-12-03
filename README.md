@@ -60,7 +60,8 @@ You can interact with these controls to customize the simulation and visualizati
 
 ### Controller
 - Left joystick: Yaw (left/right) and Pitch (up/down)
-- X, Y, A, B, LB, RB: Designated air roll
+- X: Air roll left
+- Y: Air roll right
 
 ## Getting Started
 
