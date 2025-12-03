@@ -170,7 +170,6 @@ export class Car extends THREE.Group {
           if (isDown) this.input.yawRight = 0;
         } else {
           this.input.yawRight = isDown ? 1 : 0;
-          if (isDown) this.input.rollLeft = 0;
         }
         break;
       case "KeyD":
@@ -180,7 +179,6 @@ export class Car extends THREE.Group {
           if (isDown) this.input.yawLeft = 0;
         } else {
           this.input.yawLeft = isDown ? 1 : 0;
-          if (isDown) this.input.rollRight = 0;
         }
         break;
       case "KeyW":
@@ -297,7 +295,6 @@ export class Car extends THREE.Group {
 }
  
   applyInputs(dt) {
-
 
     let { controller_yaw, controller_pitch, controller_roll } = this.handleController();
 
