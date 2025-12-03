@@ -9,10 +9,6 @@ A Rocket League air roll trainer and visualization tool. This project helps play
 This project received a lot of positive feedback from the Rocket League community on Reddit:
 - Shared on [r/RocketLeagueSchool](https://www.reddit.com/r/RocketLeagueSchool/comments/1ovdu2o/directional_air_roll_visualized_in_real_time/), the tool was praised for its usefulness in visualizing and practicing directional air roll in real time.
 - Many users described it as "the single most incredible thing I've seen RL related in such a long time" and "amazing work."
-- Players appreciated the ability to use both keyboard/mouse and controller, and the live browser demo.
-- The project was compared to popular workshop maps and training tools, with users noting its unique real-time visualization and educational value.
-- Community members shared their experiences switching from free air roll to directional air roll, and discussed the advantages for advanced mechanics.
-- The post inspired other developers and content creators, with some planning to make videos or build similar tools.
 
 Read the full discussion and feedback [here](https://www.reddit.com/r/RocketLeagueSchool/comments/1ovdu2o/directional_air_roll_visualized_in_real_time/).
 
