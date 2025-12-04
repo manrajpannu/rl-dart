@@ -121,7 +121,7 @@ function drawDeadzone(yaw, pitch) {
   // Draw yaw/pitch text above the box on the left
   deadzoneCtx.save();
   deadzoneCtx.font = '9px monospace';
-  deadzoneCtx.fillStyle = 'black';
+  deadzoneCtx.fillStyle = 'white';
   deadzoneCtx.textAlign = 'left';
   deadzoneCtx.textBaseline = 'top';
   deadzoneCtx.fillText(`(${(-yaw).toFixed(4)}, ${pitch.toFixed(4)})`, 10, 10);
