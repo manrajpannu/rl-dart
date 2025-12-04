@@ -4,13 +4,6 @@ A Rocket League air roll trainer and visualization tool. This project helps play
 
 [Live demo](https://manrajpannu.github.io/rl-dart/)
 
-## Community Discussion & Feedback
-
-This project received a lot of positive feedback from the Rocket League community on Reddit:
-- Shared on [r/RocketLeagueSchool](https://www.reddit.com/r/RocketLeagueSchool/comments/1ovdu2o/directional_air_roll_visualized_in_real_time/), the tool was praised for its usefulness in visualizing and practicing directional air roll in real time.
-- Many users described it as "the single most incredible thing I've seen RL related in such a long time" and "amazing work."
-
-Read the full discussion and feedback [here](https://www.reddit.com/r/RocketLeagueSchool/comments/1ovdu2o/directional_air_roll_visualized_in_real_time/).
 
 ## Features
 - Real-time 3D visualization of car and ball using Three.js
@@ -62,6 +55,14 @@ You can interact with these controls to customize the simulation and visualizati
 - Left joystick: Yaw (left/right) and Pitch (up/down)
 - X: Air roll left
 - Y: Air roll right
+
+## Community Discussion & Feedback
+
+This project received a lot of positive feedback from the Rocket League community on Reddit:
+- Shared on [r/RocketLeagueSchool](https://www.reddit.com/r/RocketLeagueSchool/comments/1ovdu2o/directional_air_roll_visualized_in_real_time/), the tool was praised for its usefulness in visualizing and practicing directional air roll in real time.
+- Many users described it as "the single most incredible thing I've seen RL related in such a long time" and "amazing work."
+
+Read the full discussion and feedback [here](https://www.reddit.com/r/RocketLeagueSchool/comments/1ovdu2o/directional_air_roll_visualized_in_real_time/).
 
 ## Getting Started
 
