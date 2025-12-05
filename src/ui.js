@@ -41,6 +41,7 @@ export function createUI(car, ball, map, renderer) {
    
     controllerFolder.add(car, 'airRollLeftButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Left Button');
     controllerFolder.add(car, 'airRollRightButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Right Button');
+    controllerFolder.add(car, 'airRollFreeButton', { 'LB': 4, 'RB': 5, 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Free Air Roll Button');
     const deadzoneCanvas = document.getElementById('deadzone');
     deadzoneCanvas.style.display = 'none';
     const deadzoneState = { showDeadzone: false };

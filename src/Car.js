@@ -117,9 +117,10 @@ export class Car extends THREE.Group {
     this.gamepadIndex = null;
     window.addEventListener('gamepadconnected', (e) => this.gamepadIndex = e.gamepad.index);
     window.addEventListener('gamepaddisconnected', (e) => {if (this.gamepadIndex === e.gamepad.index) this.gamepadIndex = null});
-    // Controller button mappings for air roll left/right
-    this.airRollLeftButton = 2; // Default LB
-    this.airRollRightButton = 3; // Default RB
+    // Controller button mappings for air roll left/right and free air roll
+    this.airRollLeftButton = 2; // Default X
+    this.airRollRightButton = 3; // Default Y
+    this.airRollFreeButton = 4; // Default LB
     
     // Keyboard input
     document.addEventListener("keydown", (e) => this.handleKey(e.code, true));
@@ -285,8 +286,16 @@ export class Car extends THREE.Group {
       // Air roll left/right mapping
       const leftPressed = gp.buttons[this.airRollLeftButton]?.pressed;
       const rightPressed = gp.buttons[this.airRollRightButton]?.pressed;
-      if (leftPressed) roll = -1;
-      else if (rightPressed) roll = 1;
+      const freePressed = gp.buttons[this.airRollFreeButton]?.pressed;
+      if (freePressed) {
+        // Free air roll: allow full roll control with stick
+        roll = -yaw;
+        yaw = 0;
+      } else if (leftPressed) {
+        roll = -1;
+      } else if (rightPressed) {
+        roll = 1;
+      }
     }
   }
 
@@ -493,7 +502,7 @@ export class Car extends THREE.Group {
   updateCamera(ballPosition, dt) {
     let forwardDir = new THREE.Vector3();
     let lookAt = new THREE.Vector3();
-    let weights = new THREE.Vector3(0, 0, 0);
+    let weights = new THREE.Vector3(0.15, 0.35, 0.15);
     const alpha = 0.008; // Smoothing factor
 
     if (this.ballCam) {
@@ -501,7 +510,6 @@ export class Car extends THREE.Group {
       forwardDir.normalize();
       lookAt = ballPosition.clone();
     } else {
-      weights = new THREE.Vector3(0.5, 0.2, 0.5);
       
       forwardDir.copy(this.forward);
       forwardDir.applyQuaternion(this.quaternion);
@@ -514,6 +522,7 @@ export class Car extends THREE.Group {
       .sub(forwardDir.multiplyScalar(physics.camera.distance))
       .add(this.Up.clone().multiplyScalar(physics.camera.height));
 
+    //this.camera.position.lerp(desiredCameraPos, alpha)
     this.ballCam ?  this.camera.position.lerp(desiredCameraPos, alpha) :  weightedLerp(this.camera.position, desiredCameraPos, weights, alpha)
     
     const smoothLookAt = new THREE.Vector3().lerpVectors(
