@@ -35,9 +35,93 @@ function  weightedLerp(current, target, weights, dt) {
   }
 
 export class Car extends THREE.Group {
+      _mouseDown = false;
+    // Particle system setup
+    _initParticles() {
+      this.particleGroup = new THREE.Group();
+      this.scene.add(this.particleGroup);
+      this._particles = [];
+    }
+
+    emitParticles(dt) {
+      // Emit particles from the back of the car, rate controlled by dt
+      if (!this._emitAccumulator) this._emitAccumulator = 0;
+      const particlesPerSecond = 120; // emission rate
+      this._emitAccumulator += dt * particlesPerSecond;
+      const numToEmit = Math.floor(this._emitAccumulator);
+      if (numToEmit <= 0) return;
+      this._emitAccumulator -= numToEmit;
+
+
+      const backOffset = new THREE.Vector3(0, 0.1, 0.6); // behind car
+      backOffset.applyQuaternion(this.quaternion);
+      const pos = this.position.clone().add(backOffset);
+
+
+      for (let i = 0; i < numToEmit; i++) {
+        // Center particle
+        const offsets = [
+          new THREE.Vector3(-0.15, 0, 0),  // left
+          new THREE.Vector3(0.15, 0, 0)    // right
+        ];
+        for (const offset of offsets) {
+          // Smoke: larger, softer, semi-transparent, random fade
+          const size = 0.04 + Math.random()*0.01;
+          const opacity = 0.12 + Math.random()*0.10;
+          const particle = new THREE.Mesh(
+            new THREE.SphereGeometry(size, 12, 12),
+            new THREE.MeshBasicMaterial({ color: this.boostColour, transparent: true, opacity: opacity, depthWrite: false })
+          );
+          // Offset in car's local space, then rotate to world
+          const worldOffset = offset.clone().applyQuaternion(this.quaternion);
+          particle.position.copy(pos).add(worldOffset);
+          // Give random velocity, mostly upward and slightly spread
+          particle.userData.velocity = new THREE.Vector3(
+            (Math.random()-0.5)*0.13,
+            (Math.random()-0.5)*0.13,
+            1.5 + Math.random()*0.13
+          ).applyQuaternion(this.quaternion);
+          particle.userData.life = 1.0 + Math.random()*0.4;
+          this.particleGroup.add(particle);
+          this._particles.push(particle);
+        }
+      }
+
+
+    }
+
+    updateParticles(dt) {
+      if (!this._particles) return;
+      for (let i = this._particles.length - 1; i >= 0; i--) {
+      const p = this._particles[i];
+      p.position.addScaledVector(p.userData.velocity, dt * 2);
+      p.userData.life -= dt;
+
+      // Fade in at birth, fade out at death
+      const totalLife = p.userData.totalLife || (p.userData.totalLife = p.userData.life + dt);
+      const fadeIn = Math.min(1, (totalLife - p.userData.life) / 0.22); // fade in over 0.15s
+      const fadeOut = Math.min(1, p.userData.life / 0.25); // fade out over last 0.25s
+      const baseOpacity = Math.max(0, Math.min(1, p.userData.life * 0.4));
+      p.material.opacity = baseOpacity * fadeIn * fadeOut;
+      p.material.transparent = true;
+
+      // Scale is inverse of life, capped at maxScale
+      const maxScale = 3.0;
+      const minLife = 0.05;
+      const scale = Math.min(maxScale, 1.2 / Math.max(p.userData.life, minLife));
+      p.scale.setScalar(scale);
+
+      if (p.userData.life <= 0) {
+        this.particleGroup.remove(p);
+        this._particles.splice(i, 1);
+      }
+      }
+    }
   constructor(scene) {
     super();
     this.scene = scene;
+    this._initParticles();
+    this._mouseDown = false;
     
     // Car 
     this.carModels = new Map();
@@ -53,6 +137,7 @@ export class Car extends THREE.Group {
     this.showLine = false;
     this.showAxisOfRotationLine = true;
     this.showTorus = true;
+    this.boostColour = 0xededed;
     
     // Physics
     this.rotationVelocity = new THREE.Vector3();
@@ -120,11 +205,18 @@ export class Car extends THREE.Group {
     // Controller button mappings for air roll left/right and free air roll
     this.airRollLeftButton = 2; // Default X
     this.airRollRightButton = 3; // Default Y
-    this.airRollFreeButton = 4; // Default LB
+    this.airRollFreeButton = 0; // Default A
+    this.boostButton = 4; // Default LB
     
     // Keyboard input
     document.addEventListener("keydown", (e) => this.handleKey(e.code, true));
     document.addEventListener("keyup", (e) => this.handleKey(e.code, false));
+    window.addEventListener("mousedown", (e) => {
+      if (e.button === 0) this._mouseDown = true;
+    });
+    window.addEventListener("mouseup", (e) => {
+      if (e.button === 0) this._mouseDown = false;
+    });
   }
   
   setTorusDrawOnTop(enable) {
@@ -220,7 +312,7 @@ export class Car extends THREE.Group {
 
   handleController() {
   let pitch = 0, yaw = 0, roll = 0;
-
+  let boostPressed = false;
   if (this.gamepadIndex !== null) {
     const gp = navigator.getGamepads()[this.gamepadIndex];
     if (gp && gp.connected) {
@@ -287,6 +379,8 @@ export class Car extends THREE.Group {
       const leftPressed = gp.buttons[this.airRollLeftButton]?.pressed;
       const rightPressed = gp.buttons[this.airRollRightButton]?.pressed;
       const freePressed = gp.buttons[this.airRollFreeButton]?.pressed;
+      boostPressed = gp.buttons[this.boostButton]?.pressed;
+      
       if (freePressed) {
         // Free air roll: allow full roll control with stick
         roll = -yaw;
@@ -299,12 +393,12 @@ export class Car extends THREE.Group {
     }
   }
 
-  return {controller_pitch: (this.input.pitchUp - this.input.pitchDown) || pitch, controller_yaw: (this.input.yawRight - this.input.yawLeft) || yaw, controller_roll: (this.input.rollRight - this.input.rollLeft) || roll};
+  return {controller_pitch: (this.input.pitchUp - this.input.pitchDown) || pitch, controller_yaw: (this.input.yawRight - this.input.yawLeft) || yaw, controller_roll: (this.input.rollRight - this.input.rollLeft) || roll, boostPressed: boostPressed };
 }
  
   applyInputs(dt) {
 
-    let { controller_yaw, controller_pitch, controller_roll } = this.handleController();
+    let { controller_yaw, controller_pitch, controller_roll, boostPressed } = this.handleController();
 
     const inputVec = new THREE.Vector3();
     inputVec.x = controller_pitch;      // Pitch
@@ -313,11 +407,17 @@ export class Car extends THREE.Group {
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 
-
     // Update rotational velocity
     this.rotationVelocity.x += inputVec.x * this.rotationSpeed.x * dt;
     this.rotationVelocity.y += inputVec.y * this.rotationSpeed.y * dt;
     this.rotationVelocity.z += inputVec.z * this.rotationSpeed.z * dt;
+
+    // Emit particles if mouse is held
+    if (this._mouseDown  || boostPressed) {
+      this.emitParticles(dt);
+    }
+    // Update particles
+    this.updateParticles(dt);
 
     // X (Pitch)
     if (Math.abs(this.rotationVelocity.x) > 1e-3 && controller_pitch === 0) {

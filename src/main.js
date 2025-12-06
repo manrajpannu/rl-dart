@@ -164,8 +164,8 @@ function animate() {
 
   while (accumulator >= FIXED_DT) {
     ball.intersectsLine(car.getForwardLine(), FIXED_DT);
-    car.applyInputs(FIXED_DT);
     ball.updateRandomMovement(FIXED_DT);
+    car.applyInputs(FIXED_DT);
     accumulator -= FIXED_DT;
     // Draw deadzone dots using controller yaw/pitch
     const { controller_pitch, controller_yaw } = car.handleController();
