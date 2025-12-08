@@ -4,6 +4,7 @@ A Rocket League air roll trainer and visualization tool. This project helps play
 
 [Live demo](https://manrajpannu.github.io/rl-dart/)
 
+https://github.com/user-attachments/assets/6278cd9b-d782-4125-8ba6-1a806838323a
 
 ## Features
 - Real-time 3D visualization of car and ball using Three.js
