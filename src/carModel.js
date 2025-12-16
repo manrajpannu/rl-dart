@@ -46,12 +46,5 @@ export const CAR_MODELS = {
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }
-    },
-    lambo: {
-        name: 'lambo',
-        modelUrl: `${import.meta.env.BASE_URL}models/lambo/scene.gltf`,
-        scale: 0.15,
-        position: { x: 0.28, y: 0.03, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 }
     }
 };

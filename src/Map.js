@@ -1,15 +1,15 @@
 import * as THREE from 'three';
 
 const loader = new THREE.TextureLoader();
-const texture = loader.load( 'https://threejs.org/manual/examples/resources/images/checker.png' );
-const planeMat = new THREE.MeshPhongMaterial( {
+const texture = loader.load('public/images/grid.png');
+const planeMat = new THREE.MeshBasicMaterial( {
     map: texture,
     side: THREE.DoubleSide,
 } );
 
 export class Map extends THREE.Group {
 
-    constructor(planeSize = 80) {
+    constructor(planeSize = 160) {
         super();
         this.planeSize = planeSize;
     }

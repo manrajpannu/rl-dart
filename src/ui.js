@@ -18,7 +18,7 @@ function youtuberMode(mode, map, renderer)
         renderer.setClearColor(0x00ff00);
         map.visible = false;
     } else {
-        renderer.setClearColor("darkgrey");
+        renderer.setClearColor("black");
         map.visible = true;
     }
 
@@ -63,7 +63,31 @@ export function createUI(car, ball, map, renderer) {
     const visualsFolder = carFolder.addFolder('Visuals');
     visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => car.updateVisibility());
     visualsFolder.add( car, 'showAxisOfRotationLine').name('Show Axis of Rotation');
-    
+
+        const boostFolder = visualsFolder.addFolder('Boost');
+        boostFolder.add( car, 'boostGap', 0, 0.3).name('Gap')
+        boostFolder.add( car, 'particlesPerSecond', 0, 300).name('Amount/s')
+        boostFolder.add( car, 'particleSpread', 0, 1).name('Spread')
+        boostFolder.add( car, 'particleRandomness', 0, 3).name('Randomness')
+
+        const fadeFolder = boostFolder.addFolder('Fade');
+        fadeFolder.add( car, 'particleFadeInFactor', 0,8).name('Fade In Factor')
+        fadeFolder.add( car, 'particleFadeInTime', 0, 3).name('Fade In Time')
+        fadeFolder.add( car, 'particleFadeOutFactor', 0,8).name('Fade Out Factor')
+        fadeFolder.add( car, 'particleFadeOutTime', 0, 3).name('Fade Out Time')
+
+        boostFolder.add( car, 'particleMaxScale', 0.1, 5).name('Max Particle Scale')
+        boostFolder.add( car, 'particleScaleFactor', 0.1, 5).name('Particle Scale Factor')
+
+        const boostColorObj = { color: '#ededed' };
+        boostFolder.addColor(boostColorObj, 'color').name('Boost Color').onChange((value) => {
+            if (typeof value === 'string') {
+                car.boostColour = parseInt(value.replace('#', '0x'), 16);
+            } else {
+                car.boostColour = value;
+            }
+        });
+
         //  Helper Donut Folder
         const helperDonutFolder = visualsFolder.addFolder('Helper Donut');
         helperDonutFolder.add( car, 'showTorus').name('Show Helper Donut')
@@ -77,14 +101,7 @@ export function createUI(car, ball, map, renderer) {
                 car._torusMaterial.color.set(value);
             }
         });
-        const boostColorObj = { color: '#ededed' };
-        carFolder.addColor(boostColorObj, 'color').name('Boost Color').onChange((value) => {
-            if (typeof value === 'string') {
-                car.boostColour = parseInt(value.replace('#', '0x'), 16);
-            } else {
-                car.boostColour = value;
-            }
-        });
+
 
     
     // Physics Folder

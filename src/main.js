@@ -5,6 +5,7 @@ import { Map } from './Map';
 import { Car } from './Car';
 import { createUI } from './ui';
 import { physics } from './physicsConfig';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
 const container = document.getElementById('three-container');
 
@@ -18,8 +19,24 @@ stats.dom.style.left = '8px';
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor("darkgrey")
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
 container.appendChild(renderer.domElement);
+
+const pmremGenerator = new THREE.PMREMGenerator( renderer );
+
+const hdriLoader = new RGBELoader();
+// Ensure loader returns an unsigned byte texture usable by PMREM
+hdriLoader.setDataType(THREE.UnsignedByteType);
+// Use an absolute path so dev server serves the asset correctly
+hdriLoader.load('/public/images/HDR_blue_nebulae-1.hdr', function ( texture ) {
+  const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
+  texture.dispose();
+  // Set both environment (lighting) and background (visible) to the generated env map
+  scene.environment = envMap;
+  scene.background = envMap;
+});
 
 const scene = new THREE.Scene();
 

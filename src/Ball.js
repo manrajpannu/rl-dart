@@ -44,9 +44,8 @@ export class Ball extends THREE.Group {
             this._bezierDuration = dist / this.flowySpeed;
             this._bezierT = 0;
         }
-    green = new THREE.Color(0x55ff55);
-    black = new THREE.Color(0x000000);
-    red = new THREE.Color(0xff5555);
+    positive = new THREE.Color(0x55ff55);
+    negative = new THREE.Color(0xB4B4B4);
 
     constructor(position = new THREE.Vector3(0, 3, -3), radius = 0.9125) {
     super();
@@ -133,7 +132,7 @@ export class Ball extends THREE.Group {
             } else {
                 // Normal color logic
                 const mixedColor = new THREE.Color();
-                mixedColor.lerpColors(this.red, this.green, this.targetTimer / physics.ball.hitWindowDuration);
+                mixedColor.lerpColors(this.negative, this.positive, this.targetTimer / physics.ball.hitWindowDuration);
                 this.sphere.material.color.set(mixedColor);
                 if (this.targetTimer > physics.ball.hitWindowDuration) {
                     switch (physics.ball.randomizerPreset) {
@@ -152,7 +151,7 @@ export class Ball extends THREE.Group {
             }
         } else {
             this.intersecting = false;
-            this.sphere.material.color.set(this.red);
+            this.sphere.material.color.set(this.negative);
             this.targetTimer = 0;
             return false;
         }
