@@ -125,8 +125,5 @@ This work is based on "Dominus - Rocket League Car" (https://sketchfab.com/3d-mo
 ### Ball - Rocket League
 This work is based on "Ball - Rocket League" (https://sketchfab.com/3d-models/ball-rocket-league-2c8911aa1dcd4c53bad842f2d354dfe2) by Jako (https://sketchfab.com/fairlight51) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 
-### 2021 Lamborghini Countach LPI 800-4
-This work is based on "2021 Lamborghini Countach LPI 800-4" (https://sketchfab.com/3d-models/2021-lamborghini-countach-lpi-800-4-d76b94884432422b966d1a7f8815afb5) by Lexyc16 (https://sketchfab.com/Lexyc16) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
-
 ## License
 MIT
