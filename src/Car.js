@@ -418,6 +418,11 @@ export class Car extends THREE.Group {
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 
+        // Update rotational velocity
+    this.rotationVelocity.x += inputVec.x * this.rotationSpeed.x * dt;
+    this.rotationVelocity.y += inputVec.y * this.rotationSpeed.y * dt;
+    this.rotationVelocity.z += inputVec.z * this.rotationSpeed.z * dt;
+
     // Emit particles if mouse is held
     if (this._mouseDown  || boostPressed) {
       this.emitParticles(dt);
