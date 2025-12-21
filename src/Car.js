@@ -418,11 +418,6 @@ export class Car extends THREE.Group {
 
     if (inputVec.lengthSq() > 1) inputVec.normalize();
 
-    // Update rotational velocity
-    this.rotationVelocity.x += inputVec.x * this.rotationSpeed.x * dt;
-    this.rotationVelocity.y += inputVec.y * this.rotationSpeed.y * dt;
-    this.rotationVelocity.z += inputVec.z * this.rotationSpeed.z * dt;
-
     // Emit particles if mouse is held
     if (this._mouseDown  || boostPressed) {
       this.emitParticles(dt);
@@ -430,55 +425,6 @@ export class Car extends THREE.Group {
     // Update particles
     this.updateParticles(dt);
 
-    // X (Pitch)
-    if (Math.abs(this.rotationVelocity.x) > 1e-3 && controller_pitch === 0) {
-      this.inertiaTimerX += dt;
-    } else if (this.inertiaTimerX > 0) {
-      this.lastInertiaX = this.inertiaTimerX;
-      this.inertiaTimerX = 0;
-    }
-    // Y (Yaw)
-    if (Math.abs(this.rotationVelocity.y) > 1e-3 && controller_yaw === 0) {
-      this.inertiaTimerY += dt;
-    } else if (this.inertiaTimerY > 0) {
-      this.lastInertiaY = this.inertiaTimerY;
-      this.inertiaTimerY = 0;
-    }
-    // Z (Roll)
-    if (Math.abs(this.rotationVelocity.z) > 1e-3 && controller_roll === 0) {
-      this.inertiaTimerZ += dt;
-    } else if (this.inertiaTimerZ > 0) {
-      this.lastInertiaZ = this.inertiaTimerZ;
-      this.inertiaTimerZ = 0;
-    }
-
-    // Display full rotation times and inertia timers in top left of HUD canvas
-    if (typeof window !== 'undefined') {
-      const hudCanvas = document.getElementById('hud');
-      if (hudCanvas) {
-        const hudCtx = hudCanvas.getContext('2d');
-        hudCtx.save();
-        hudCtx.clearRect(0, 0, 120, 200);
-        hudCtx.font = '11px monospace';
-        hudCtx.fillStyle = 'black';
-        hudCtx.textAlign = 'left';
-        hudCtx.textBaseline = 'top';
-        const timeX = Math.abs(this.rotationVelocity.x) > 1e-6 ? (2 * Math.PI) / Math.abs(this.rotationVelocity.x) : Infinity;
-        const timeY = Math.abs(this.rotationVelocity.y) > 1e-6 ? (2 * Math.PI) / Math.abs(this.rotationVelocity.y) : Infinity;
-        const timeZ = Math.abs(this.rotationVelocity.z) > 1e-6 ? (2 * Math.PI) / Math.abs(this.rotationVelocity.z) : Infinity;
-        hudCtx.fillText(`Full rot (s):`, 4, 4);
-        hudCtx.fillText(`X: ${timeX === Infinity ? '-' : timeX.toFixed(2)}`, 4, 16);
-        hudCtx.fillText(`Y: ${timeY === Infinity ? '-' : timeY.toFixed(2)}`, 4, 27);
-        hudCtx.fillText(`Z: ${timeZ === Infinity ? '-' : timeZ.toFixed(2)}`, 4, 38);
-
-        hudCtx.fillText(`Inertia (s):`, 4, 50);
-        hudCtx.fillText(`X: ${(this.inertiaTimerX > 0 ? this.inertiaTimerX : this.lastInertiaX) > 0 ? (this.inertiaTimerX > 0 ? this.inertiaTimerX : this.lastInertiaX).toFixed(2) : '-'}`, 4, 61);
-        hudCtx.fillText(`Y: ${(this.inertiaTimerY > 0 ? this.inertiaTimerY : this.lastInertiaY) > 0 ? (this.inertiaTimerY > 0 ? this.inertiaTimerY : this.lastInertiaY).toFixed(2) : '-'}`, 4, 72);
-        hudCtx.fillText(`Z: ${(this.inertiaTimerZ > 0 ? this.inertiaTimerZ : this.lastInertiaZ) > 0 ? (this.inertiaTimerZ > 0 ? this.inertiaTimerZ : this.lastInertiaZ).toFixed(2) : '-'}`, 4, 83);
-        hudCtx.restore();
-      }
-    }
-    // ...existing code...
 
     // Apply drag
     const drag = new THREE.Vector3(this.airDragCoefficient.x, this.airDragCoefficient.y, this.airDragCoefficient.z);
@@ -487,11 +433,7 @@ export class Car extends THREE.Group {
     if (this.rotationVelocity.lengthSq() < 1e-3)
       this.rotationVelocity.set(0, 0, 0);
 
-    // Clamp
-    // this.rotationVelocity.x = THREE.MathUtils.clamp(this.rotationVelocity.x, -this.maxRotationSpeed.x, this.maxRotationSpeed.x);
-    // this.rotationVelocity.y = THREE.MathUtils.clamp(this.rotationVelocity.y, -this.maxRotationSpeed.y, this.maxRotationSpeed.y);
-    // this.rotationVelocity.z = THREE.MathUtils.clamp(this.rotationVelocity.z, -this.maxRotationSpeed.z, this.maxRotationSpeed.z);
-
+  
     const rotMat = new THREE.Matrix4();
 
     const q = new THREE.Quaternion()
