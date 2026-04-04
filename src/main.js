@@ -1,10 +1,7 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
-import { Ball } from './Ball';
-import { Map } from './Map';
-import { Car } from './Car';
-import { createUI } from './ui';
-import { physics } from './physicsConfig';
+import { Engine } from './Engine.js';
+import { physics } from './PhysicsConfig.js';
 import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
 const container = document.getElementById('three-container');
@@ -24,152 +21,17 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
 container.appendChild(renderer.domElement);
 
-const pmremGenerator = new THREE.PMREMGenerator( renderer );
-
-const hdriLoader = new RGBELoader();
-// Ensure loader returns an unsigned byte texture usable by PMREM
-hdriLoader.setDataType(THREE.UnsignedByteType);
-// Use an absolute path so dev server serves the asset correctly
-hdriLoader.load('/public/images/HDR_blue_nebulae-1.hdr', function ( texture ) {
-  const envMap = pmremGenerator.fromEquirectangular( texture ).texture;
-  texture.dispose();
-  // Set both environment (lighting) and background (visible) to the generated env map
-  scene.environment = envMap;
-  scene.background = envMap;
-});
-
 const scene = new THREE.Scene();
 
-function setupLights () {
-  const light1 = new THREE.DirectionalLight();
-  light1.position.set(1,1,1);
-  scene.add(light1);
-
-  const light2 = new THREE.DirectionalLight();
-  light2.position.set(-1,1,-0.5);
-  scene.add(light2);
-  
-  const light3 = new THREE.AmbientLight('white', 2.0);
-  scene.add(light3);
-
-  const light4 = new THREE.DirectionalLight();
-  light4.position.set(0,-1,0);
-  light4.target.position.set(0,0,0);
-  scene.add(light4);
-
-}
-
-const ball = new Ball();
-scene.add(ball);
-
-const map = new Map();
-map.gen();
-map.position.y = -15;
-scene.add(map);
-
-const car = new Car(scene);
-scene.add(car);
+const engine = new Engine(renderer);
+scene.add(engine);
 
 let lastTime = performance.now();
 const FIXED_DT = 1.0 / 136.0; 
 let accumulator = 0;
 
-const canvas = document.getElementById('hud');
-const ctx = canvas.getContext('2d');
-const R = 40; // radius of circle
-const centerX = canvas.width / 2;
-const centerY = canvas.height / 2;
 
-function drawDot(yawDiff, pitchDiff) {
-  // Convert yaw and pitch to polar coordinates
-  yawDiff = -yawDiff * 100;
-  pitchDiff = -pitchDiff * 100;
-  const angle = Math.atan2(pitchDiff, yawDiff); // angle in radians
-  const length = Math.min(Math.sqrt(yawDiff * yawDiff + pitchDiff * pitchDiff), R-5); // clamp to circle radius
 
-  const dotX = centerX + length * Math.cos(angle);
-  const dotY = centerY + length * Math.sin(angle);
-
-  // filled grey circle
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, R, 0, Math.PI * 2);
-  ctx.fillStyle = 'grey';
-  ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'black';
-  ctx.stroke();
-
-  // white dot
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 5, 0, Math.PI * 2);
-  ctx.fillStyle = 'white';
-  ctx.fill();
-
-}
-
-// Deadzone dot history
-const deadzoneCanvas = document.getElementById('deadzone');
-const deadzoneCtx = deadzoneCanvas.getContext('2d');
-const DEADZONE_RADIUS = 250;
-const DEADZONE_CENTER_X = deadzoneCanvas.width / 2;
-const DEADZONE_CENTER_Y = deadzoneCanvas.height / 2;
-const deadzoneHistory = [];
-
-function drawDeadzone(yaw, pitch) {
-  // Add new dot, interpolate if movement is large
-  let movementSpeed = 0;
-  if (deadzoneHistory.length > 0) {
-    const prev = deadzoneHistory[deadzoneHistory.length - 1];
-    const dx = yaw - prev.yaw;
-    const dy = pitch - prev.pitch;
-    movementSpeed = Math.sqrt(dx * dx + dy * dy);
-  }
-  deadzoneHistory.push({ yaw, pitch, time: performance.now() });
-  // Dynamically adjust history length: faster movement = shorter trail
-  const minLen = 25;
-  const maxLen = 75;
-  // Map movementSpeed [0, 0.2] to history length [maxLen, minLen]
-  let histLen = Math.round(maxLen - Math.min(movementSpeed, 0.2) / 0.2 * (maxLen - minLen));
-  if (deadzoneHistory.length > histLen) deadzoneHistory.shift();
-
-  // Clear canvas
-  deadzoneCtx.clearRect(0, 0, deadzoneCanvas.width, deadzoneCanvas.height);
-
-  // Draw yaw/pitch text above the box on the left
-  deadzoneCtx.save();
-  deadzoneCtx.font = '9px monospace';
-  deadzoneCtx.fillStyle = 'white';
-  deadzoneCtx.textAlign = 'left';
-  deadzoneCtx.textBaseline = 'top';
-  deadzoneCtx.fillText(`(${(-yaw).toFixed(4)}, ${pitch.toFixed(4)})`, 10, 10);
-  deadzoneCtx.restore();
-
-  // Draw dots and lines at full opacity
-  deadzoneHistory.forEach((dot, i) => {
-    // Convert yaw/pitch to canvas coordinates
-    const x = DEADZONE_CENTER_X + (-dot.yaw) * DEADZONE_RADIUS;
-    const y = DEADZONE_CENTER_Y + (-dot.pitch) * DEADZONE_RADIUS;
-
-    deadzoneCtx.save();
-    deadzoneCtx.globalAlpha = 1.0;
-    deadzoneCtx.fillStyle = '#ffffffff';
-    deadzoneCtx.beginPath();
-    deadzoneCtx.arc(x, y, 1, 0, Math.PI * 2);
-    deadzoneCtx.fill();
-    deadzoneCtx.restore();
-  });
-}
-
-window.addEventListener("gamepadconnected", (e) => {
-  const gp = navigator.getGamepads()[e.gamepad.index];
-  console.log(
-    "Gamepad connected at index %d: %s. %d buttons, %d axes.",
-    gp.index,
-    gp.id,
-    gp.buttons.length,
-    gp.axes.length,
-  );
-});
 
 function animate() {
   requestAnimationFrame(animate);
@@ -180,31 +42,23 @@ function animate() {
   accumulator += frameTime;
 
   while (accumulator >= FIXED_DT) {
-    ball.intersectsLine(car.getForwardLine(), FIXED_DT);
-    ball.updateRandomMovement(FIXED_DT);
-    car.applyInputs(FIXED_DT);
+    engine.update(FIXED_DT);
     accumulator -= FIXED_DT;
-    // Draw deadzone dots using controller yaw/pitch
-    const { controller_pitch, controller_yaw } = car.handleController();
-    drawDeadzone(controller_yaw, -controller_pitch);
   }
 
-  const renderDt = frameTime; 
-  car.updateCamera(ball.position, renderDt);
-
-
-  renderer.render(scene, car.camera);
+  
+  renderer.render(scene, engine.getCamera());
   stats.update();
 }
 
 window.addEventListener('resize', () => {
-  car.camera.aspect = window.innerWidth / window.innerHeight;
-  car.camera.updateProjectionMatrix();
+  const camera = engine.getCamera();
+  camera.aspect = window.innerWidth / window.innerHeight;
+  engine.car.camera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight)
 
 })
 
-setupLights();
-createUI(car, ball, map, renderer);
+
 animate();

@@ -4,9 +4,9 @@ export const physics = {
     car: {
         body: 'fennec',
         rotationSpeed: {
-            x: 21.0,
-            y: 21.0,
-            z: 34.0
+            x: 19.0,
+            y: 19.0,
+            z: 32.0
         },
         airDragCoefficient: {
             x: 0.975,
@@ -17,6 +17,11 @@ export const physics = {
             x: 5.55,
             y: 5.55,
             z: 5.55
+        },
+        rampSpeed: {
+            x: 2.0,
+            y: 2.0,
+            z: 50.0
         },
 
         torusBaseScale: 1.0,
