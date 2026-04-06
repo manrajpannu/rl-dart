@@ -1,19 +1,19 @@
-import { Ball } from './Ball/Ball';
-import { Map } from './Map';
-import { Car } from './Car/Car';
-import { createUI } from './Ui';
-import { Controller } from './Controller';
-import { BallManager } from './Ball/BallManager';
-import { OrbitingMovement } from './Ball/Movement/OribalMovement';
+import { Ball } from '../Ball/Ball';
+import { Map } from '../Map';
+import { Car } from '../Car/Car';
+import { createUI } from '../Ui';
+import { Controller } from '../Controller'; 
+import { BallManager } from '../Ball/BallManager';
+import { OrbitingMovement } from '../Ball/Movement/OribalMovement';
 
 import * as THREE from 'three';
-import { ProceduralMovement } from './Ball/Movement/ProceduralMovement';
-import { NaturalMovement } from './Ball/Movement/NaturalMovement';
-import { FlowMovement } from './Ball/Movement/FlowMovement';
-import ChallengeMode from './modes/ChallengeMode';
-import { CurvyMovement } from './Ball/Movement/CurvyMovement';
-import { CoolMovement } from './Ball/Movement/CoolMovement';
-import FreeplayMode from './modes/Freeplay';
+import { ProceduralMovement } from '../Ball/Movement/ProceduralMovement';
+import { NaturalMovement } from '../Ball/Movement/NaturalMovement';
+import { FlowMovement } from '../Ball/Movement/FlowMovement';
+import ChallengeMode from './ChallengeMode';
+import { CurvyMovement } from '../Ball/Movement/CurvyMovement';
+import { CoolMovement } from '../Ball/Movement/CoolMovement';
+import FreeplayMode from './Freeplay';
 
 const canvas = document.getElementById('hud');
 const ctx = canvas.getContext('2d');

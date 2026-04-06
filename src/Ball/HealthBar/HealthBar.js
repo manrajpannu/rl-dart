@@ -11,12 +11,12 @@ export class HealthBar extends THREE.Group {
 
         // Create border (thick white)
         const borderThickness = 0.03 * Math.max(width, height);
-        this.borderMesh = this._createRoundedRectMesh(width + borderThickness, height + borderThickness, radius + borderThickness * 0.5, 'white');
+        this.borderMesh = this._createRoundedRectMesh(width + borderThickness, height + borderThickness, radius + borderThickness * 0.5, 'black');
         this.borderMesh.position.z = -0.02;
         this.add(this.borderMesh);
 
         // Create background (missing health)
-        this.bgMesh = this._createRoundedRectMesh(width, height, radius, 0x000000);
+        this.bgMesh = this._createRoundedRectMesh(width, height, radius, 0x333333);
         this.bgMesh.position.z = -0.01;
         this.add(this.bgMesh);
 

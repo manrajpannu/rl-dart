@@ -20,7 +20,7 @@ function youtuberMode(mode, map, renderer)
         renderer.setClearColor(0x00ff00);
         map.visible = false;
     } else {
-        renderer.setClearColor(0x8d9399);
+        renderer.setClearColor(0x444444);
         map.visible = true;
     }
 

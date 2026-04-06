@@ -54,7 +54,7 @@ export class Ball extends THREE.Group {
         this.hitAccumulator = 0;
 
         // Outer transparent indicatorSphere for visual effect
-        const geometry = new THREE.SphereGeometry(radius+0.1, 32, 32);
+        const geometry = new THREE.SphereGeometry(radius+0.1, 64, 64);
         const material = new THREE.MeshBasicMaterial({ color: 0xff5555, transparent: true, opacity: 0.1 });
         this.indicatorSphere = new THREE.Mesh(geometry, material);
         this.add(this.indicatorSphere);

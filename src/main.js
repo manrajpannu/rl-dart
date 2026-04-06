@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
 import { Engine } from './Engine.js';
 import { physics } from './PhysicsConfig.js';
-import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 const container = document.getElementById('three-container');
 
@@ -13,15 +13,23 @@ stats.dom.style.position = 'absolute';
 stats.dom.style.top = '8px';
 stats.dom.style.left = '8px';
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(window.devicePixelRatio);
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.max(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.0;
+renderer.toneMappingExposure = 0.85;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 container.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x444444);
+
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.8;
+pmremGenerator.dispose();
 
 const engine = new Engine(renderer);
 scene.add(engine);
@@ -56,6 +64,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   engine.car.camera.updateProjectionMatrix();
 
+  renderer.setPixelRatio(Math.max(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight)
 
 })

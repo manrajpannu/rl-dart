@@ -129,8 +129,6 @@ export class BallManager extends THREE.Group {
     update(forwardVector, boostHeld, dt) {
         let hit = false;
         let killedBall = null;
-        // Find closest ball to forwardVector (assume it's a ray)
-        this.closestBall = this.findClosestBall(forwardVector);
         this.balls.forEach(ball => {
             ball.update(forwardVector, boostHeld, dt);
             if (ball.isHit()) hit = true;
@@ -152,6 +150,9 @@ export class BallManager extends THREE.Group {
                 ballB.movement.handleCollision(ballA, ballB);
             }
         });
+
+        // Compute closest ball after positions/respawns are finalized this frame.
+        this.closestBall = this.findClosestBall(forwardVector);
     }
 
     getClosestBall() {

@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { Ball } from '../Ball/Ball';
-import { CoolMovement } from '../Ball/Movement/CoolMovement';
+import FreeplayMode from './Freeplay.js';
 
-class ChallengeMode {
+class ChallengeMode extends FreeplayMode {
     static _ensureOverlay() {
         if (!document.getElementById('challenge-overlay')) {
             const overlay = document.createElement('div');
@@ -21,7 +20,7 @@ class ChallengeMode {
     static _showCountdown(text) {
         ChallengeMode._ensureOverlay();
         const overlay = document.getElementById('challenge-overlay');
-        overlay.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:7vw;color:white;font-family:sans-serif;text-shadow:0 0 20px #000;">${text}</div>`;
+        overlay.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(9vw, 120px);font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:#f5f7fa;font-family:'Arial Black','Impact',sans-serif;text-shadow:0 0 2px rgba(0,0,0,0.95),0 0 10px rgba(0,0,0,0.65),0 0 22px rgba(29,77,125,0.35);padding:0.08em 0.35em;border:1px solid rgba(255,255,255,0.18);background:rgba(10,12,14,0.28);backdrop-filter:blur(4px);border-radius:12px;">${text}</div>`;
     }
 
     static _showTimer(time) {
@@ -35,13 +34,21 @@ class ChallengeMode {
             timerDiv.style.top = '2vw';
             timerDiv.style.left = '50%';
             timerDiv.style.transform = 'translateX(-50%)';
-            timerDiv.style.fontSize = '3vw';
-            timerDiv.style.color = 'white';
-            timerDiv.style.fontFamily = 'sans-serif';
-            timerDiv.style.textShadow = '0 0 10px #000';
+            timerDiv.style.padding = '0.15em 0.6em';
+            timerDiv.style.borderRadius = '999px';
+            timerDiv.style.fontSize = 'clamp(18px, 2.1vw, 34px)';
+            timerDiv.style.fontWeight = '900';
+            timerDiv.style.letterSpacing = '0.12em';
+            timerDiv.style.textTransform = 'uppercase';
+            timerDiv.style.color = '#f7f9fc';
+            timerDiv.style.fontFamily = '"Arial Black", "Impact", sans-serif';
+            timerDiv.style.textShadow = '0 0 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.6), 0 0 16px rgba(29,77,125,0.28)';
+            timerDiv.style.background = 'linear-gradient(180deg, rgba(7,9,11,0.42), rgba(7,9,11,0.18))';
+            timerDiv.style.border = '1px solid rgba(255,255,255,0.12)';
+            timerDiv.style.backdropFilter = 'blur(4px)';
             overlay.appendChild(timerDiv);
         }
-        timerDiv.textContent = time;
+        timerDiv.textContent = `${time}`;
     }
 
     static _clearOverlay() {
@@ -63,44 +70,24 @@ class ChallengeMode {
         health = 3,
         movement = null,
         size = 1.5,
+        spawnOverlapping = true,
         timeLimit = 60,
         boundary = 20,
         boundaryOrigin = new THREE.Vector3(0, 0, 0),
         ballConfigs = [] // [{health, movement, size} ...]
     } = {}) {
-        this.hits = 0;
-        this.kills = 0;
-        this.score = 0;
+        super({
+            numBalls,
+            health,
+            movement,
+            size,
+            spawnOverlapping,
+            boundary,
+            boundaryOrigin,
+            ballConfigs,
+        });
         this.timeElapsed = 0;
         this.timeLimit = timeLimit; // seconds
-        this.active = true;
-        this.numBalls = numBalls;
-        this.balls = [];
-        this.ballConfigs = ballConfigs;
-        this.defaultHealth = health;
-        this.defaultMovement = movement;
-        this.defaultSize = size;
-        this.boundary = boundary;
-        this.boundaryOrigin = boundaryOrigin;
-    }
-
-    createBalls(BallManager) {
-        BallManager.clear && BallManager.clear();
-        this.balls = [];
-        for (let i = 0; i < this.numBalls; i++) {
-            const cfg = this.ballConfigs[i] || {};
-            const ballHealth = cfg.health !== undefined ? cfg.health : this.defaultHealth;
-            const ballMovement = cfg.movement !== undefined ? cfg.movement : this.defaultMovement;
-            const ballSize = cfg.size !== undefined ? cfg.size : this.defaultSize;
-            const pos = this.boundaryOrigin.clone().add(new THREE.Vector3(
-                (Math.random() - 0.5) * 2 * this.boundary,
-                Math.max((Math.random() - 0.5) * 2 * this.boundary, ballSize),
-                (Math.random() - 0.5) * 2 * this.boundary
-            ));
-            const healthObj = { maxHealth: ballHealth, health: ballHealth };
-            const ball = BallManager.createBall(pos, ballSize, ballMovement, healthObj);
-            this.balls.push(ball);
-        }
     }
 
     update(dt) {
@@ -117,12 +104,9 @@ class ChallengeMode {
     }
 
     async start(BallManager) {
-        this.hits = 0;
-        this.kills = 0;
-        this.score = 0;
+        super.start(BallManager);
         this.timeElapsed = this.timeLimit;
         this.active = false;
-        this.createBalls(BallManager);
         // Countdown logic
         const countdown = async (n) => {
             for (let i = n; i > 0; i--) {
@@ -142,31 +126,19 @@ class ChallengeMode {
     }
 
     stop() {
-        this.active = false;
+        super.stop();
         console.log(`Challenge Over! Score: ${this.score}, Hits: ${this.hits}, Kills: ${this.kills}`);
     }
 
     onHit() {
+        super.onHit();
         if (!this.active) return;
-        this.hits += 1;
-        this.score += 10; // Points per hit
         console.log(`Hit! Total: ${this.hits}, Score: ${this.score}`);
     }
 
     onKill(ball) {
+        super.onKill(ball);
         if (!this.active) return;
-        this.kills += 1;
-        this.score += 50; // Points per kill
-        // Respawn the ball at a random position within boundary
-        if (ball) {
-            const pos = this.boundaryOrigin.clone().add(new THREE.Vector3(
-                (Math.random() - 0.5) * 2 * this.boundary,
-                2 + Math.random() * 6,
-                (Math.random() - 0.5) * 2 * this.boundary
-            ));
-            ball.setPosition(pos);
-            if (typeof ball.respawn === 'function') ball.respawn();
-        }
         console.log(`Kill! Total: ${this.kills}, Score: ${this.score}`);
     }
 }

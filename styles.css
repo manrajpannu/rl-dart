@@ -1,88 +1,93 @@
+:root {
+  --header-height: 22px;
+  --header-padding-horizontal: 12px;
+  --ui-z: 10010;
+  --panel: rgba(250, 250, 250, 0.08);
+  --panel-border: rgba(255, 255, 255, 0.12);
+  --text-strong: #f4f6f8;
+  --text-soft: #d6dce2;
+}
+
 .modal-theme {
-  background: #181818;
-  color: #eee;
-  font-family: 'Roboto Mono', 'Consolas', monospace;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px #0002;
-  text-transform: lowercase;
+  background: rgba(250, 250, 250, 0.08);
+  color: var(--text-strong);
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
   letter-spacing: 0.01em;
 }
 .modal-theme.intro-modal-content {
-  background: #181818;
-  color: #eee;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px #0002;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-strong);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--panel-border);
 }
 .modal-theme.intro-title {
   font-size: 1.1rem;
-  font-weight: 600;
-  color: #e5e7eb;
+  font-weight: 700;
+  color: var(--text-strong);
   margin-bottom: 0.7em;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 .modal-theme.intro-desc {
   font-size: 0.85rem;
-  color: #b0b3b8;
+  color: var(--text-soft);
   margin-bottom: 1.2em;
 }
 .modal-theme.intro-section {
   font-size: 0.9rem;
-  color: #e5e7eb;
-  font-weight: 500;
+  color: var(--text-strong);
+  font-weight: 600;
   margin-bottom: 0.5em;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
 }
 .modal-theme.intro-list {
   font-size: 0.8rem;
-  color: #d1d5db;
+  color: var(--text-soft);
   list-style: none;
   padding: 0;
   margin-bottom: 1.2em;
 }
 .modal-theme.intro-list li {
   margin-bottom: 0.4em;
-  border-left: 2px solid #555;
+  border-left: 2px solid rgba(255, 255, 255, 0.18);
   padding-left: 0.7em;
   letter-spacing: 0.01em;
 }
 .modal-theme.intro-list span {
-  color: #e5e7eb;
+  color: var(--text-strong);
   font-weight: 600;
   margin-right: 0.3em;
 }
 .modal-theme.patchnotes-date {
   font-size: 0.8rem;
-  color: #b0b3b8;
+  color: var(--text-soft);
   margin-bottom: 0.5em;
   padding-left: 0.7em;
 }
 .modal-theme.intro-close {
-  background: #181a1b;
-  color: #e5e7eb;
-  border: 2px solid #a0a0a0;
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-strong);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
   font-size: 0.8rem;
   padding: 0.5em 1.2em;
   cursor: pointer;
-  box-shadow: 0 1px 4px #0006;
-  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 .modal-theme.intro-close:hover {
-  background: #23272a;
-}
-:root {
-  --header-height: 22px;
-  --header-padding-horizontal: 12px;
-  --ui-z: 10010;
+  background: rgba(255, 255, 255, 0.16);
 }
 
 /* page base */
 body {
   margin: 0;
   overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  background: #0d0d0d;
-  color: white;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  background: #444444;
+  color: #f4f6f8;
 }
 
 #three-container {
@@ -131,20 +136,21 @@ body {
   left: 0;
   right: 0;
   height: var(--header-height);
-  background: #1f1f1f;; /* GitHub dark grey */
-  color: #c9d1d9;
+  background: rgba(25, 27, 29, 0.58);
+  color: #f4f6f8;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--header-padding-horizontal);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
   font-size: 12px;
   z-index: 10001;
-  box-shadow: 0 1px 0 rgba(27,31,35,0.08);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  backdrop-filter: blur(10px);
 }
-#top-header .brand { display: inline-flex; align-items: center; gap: 8px; color: #c9d1d9; text-decoration: none; }
-#top-header .brand svg { width: 14px; height: 14px; fill: #c9d1d9; }
-#top-header .actions a { color: #c9d1d9; text-decoration: none; font-weight: 600; }
+#top-header .brand { display: inline-flex; align-items: center; gap: 8px; color: #f4f6f8; text-decoration: none; }
+#top-header .brand svg { width: 14px; height: 14px; fill: #f4f6f8; }
+#top-header .actions a { color: #f4f6f8; text-decoration: none; font-weight: 600; }
 
 @media (max-width: 420px) {
   body { padding-top: 32px; }
@@ -166,7 +172,7 @@ body {
   transform: translate(-50%, -50%);
   z-index: 1000;
   pointer-events: none;
-  border: 1px solid rgba(255,255,255,1.00);
+  border: 1px solid rgba(255,255,255,0.8);
 }
 
 
@@ -176,75 +182,71 @@ body {
   position: fixed;
   top: 0; left: 0;
   width: 100vw; height: 100vh;
-  background: rgba(20,20,20,0.96);
+  background: rgba(68, 68, 68, 0.72);
   z-index: 10000;
-  font-family: 'Segoe UI', 'Roboto Mono', 'Consolas', monospace;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
   letter-spacing: 0.01em;
+  backdrop-filter: blur(10px);
 }
 .intro-modal-content {
-  background: #23272a;
-  color: #d1d5db;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f6f8;
   max-width: 370px;
   margin: 8vh auto 0 auto;
   padding: 1em;
-  border-radius: 0;
-  box-shadow: 0 2px 24px #000a;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
   text-align: left;
-  border: 2px solid #444;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 .intro-title {
   font-size: 1.1rem;
-  font-weight: 600;
-  color: #e5e7eb;
-  text-transform: lowercase;
+  font-weight: 700;
+  color: #f4f6f8;
   margin-bottom: 0.7em;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 .intro-desc {
   font-size: 0.85rem;
-  color: #b0b3b8;
+  color: #d6dce2;
   margin-bottom: 1.2em;
-  text-transform: lowercase;
 }
 .intro-section {
   font-size: 0.9rem;
-  color: #e5e7eb;
-  font-weight: 500;
+  color: #f4f6f8;
+  font-weight: 600;
   margin-bottom: 0.5em;
-  text-transform: lowercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.01em;
 }
 .intro-list {
   font-size: 0.8rem;
-  color: #d1d5db;
+  color: #d6dce2;
   list-style: none;
   padding: 0;
   margin-bottom: 1.2em;
 }
 .intro-list li {
   margin-bottom: 0.4em;
-  text-transform: lowercase;
-  border-left: 2px solid #555;
+  border-left: 2px solid rgba(255,255,255,0.18);
   padding-left: 0.7em;
   letter-spacing: 0.01em;
 }
 .intro-list span {
-  color: #e5e7eb;
+  color: #f4f6f8;
   font-weight: 600;
   margin-right: 0.3em;
 }
 .intro-close {
-  background: #181a1b;
-  color: #e5e7eb;
-  border: 2px solid #a0a0a0;
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f4f6f8;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
   font-size: 0.8rem;
-  text-transform: lowercase;
   padding: 0.5em 1.2em;
   cursor: pointer;
-  box-shadow: 0 1px 4px #0006;
-  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 .intro-close:hover {
-  background: #23272a;
+  background: rgba(255, 255, 255, 0.18);
 }
