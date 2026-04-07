@@ -197,6 +197,10 @@ export class Engine extends THREE.Group {
   }
 
   setMode(newMode) {
+    if (this.car && this.car.Boost && typeof this.car.Boost.reset === 'function') {
+      this.car.Boost.reset();
+    }
+
     // Unsubscribe old mode
     if (this._onHit) this.BallManager.off('hit', this._onHit);
     if (this._onKill) this.BallManager.off('killed', this._onKill);
