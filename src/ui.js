@@ -75,7 +75,7 @@ export function createUI(car, controller,  ball, map, renderer, engine) {
     // Car Folder
     const carFolder = gui.addFolder('Car');
 
-    carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
+    carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.changeCarModel(modelKey)));
     carFolder.add(car, 'boostType', Object.keys(BOOST_TYPES)).name('Boost Type').onChange((type) => {
         car.setBoostType(type);
     });

@@ -40,12 +40,5 @@ export const physics = {
         distance: 3.8,
         height: 2.0,
     },
-    ball: {
-        hitWindowDuration: 1.0,
-        chaseTimeout: 2.0,
-        scale: 1,
-        timeout: false,
-        randomizerPreset: 'default'
-    },
     world: { gameSpeed: 1.0 }
 }

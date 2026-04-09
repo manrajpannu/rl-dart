@@ -50,10 +50,7 @@ export class Ball extends THREE.Group {
         this.healthBar = new HealthBar(1, 0.085, 0.05, this.maxHealth, this.health);
         this.healthBar.position.set(0, radius + 0.5, 0);
         this.add(this.healthBar);
-
-        if (!this.healthBarEnabled) {
-            this.healthBar.visible = false;
-        }
+        this.healthBar.visible = false;
         
         // SFX
         // Use a pool of Audio objects for overlapping playback
@@ -97,8 +94,8 @@ export class Ball extends THREE.Group {
         // });
 
         // Use a simple blue sphere as the ball
-        const ballGeometry = new THREE.SphereGeometry(this.radius, 32, 32);
-        const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x0049ef4, roughness: 1, metalness: 0.0, opacity: 1 });
+        const ballGeometry = new THREE.SphereGeometry(this.radius, 128, 128);
+        const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x0049ef4, roughness: 0.95, metalness: 0.5, opacity: 1 });
         this.ball = new THREE.Mesh(ballGeometry, ballMaterial);
         this.ball.castShadow = true;
         this.ball.receiveShadow = true;
@@ -152,6 +149,7 @@ export class Ball extends THREE.Group {
         const intersection = canBeHit ? this.findIntersection(ray, this.hitBox) : null;
         this.updateCrosshairLocation(intersection);
         this.updateCrosshairSize(ray);
+        this.updateHealthBarVisibility(!!intersection);
         
         if (canBeHit && intersection && boost) {
             this.intersecting = true;
@@ -295,17 +293,27 @@ export class Ball extends THREE.Group {
     
     toggleHealthBar() {
         this.healthBarEnabled = !this.healthBarEnabled;
-        this.healthBar.visible = this.healthBarEnabled;
+        this.updateHealthBarVisibility(false);
     }
     
     enableHealthBar() {
         this.healthBarEnabled = true;
-        this.healthBar.visible = true;
+        this.updateHealthBarVisibility(false);
     }
     
     disableHealthBar() {
         this.healthBarEnabled = false;
         this.healthBar.visible = false;
+    }
+
+    updateHealthBarVisibility(isLookedAt) {
+        if (!this.healthBar) return;
+        if (!this.healthBarEnabled) {
+            this.healthBar.visible = false;
+            return;
+        }
+
+        this.healthBar.visible = !!isLookedAt || this.health < this.maxHealth;
     }
     
     setRadius(newRadius) {
@@ -331,7 +339,7 @@ export class Ball extends THREE.Group {
     }
     
     updateHealthBar(camera) {
-        if (!this.healthBar) return;
+        if (!this.healthBar || !this.healthBar.visible) return;
         
         this.healthBar.position.set(0, 0, 0);
         
@@ -361,11 +369,13 @@ export class Ball extends THREE.Group {
         this.health = this.maxHealth;
         this.healthBar.setMaxHealth(this.maxHealth);
         this.healthBar.setHealth(this.maxHealth);
+        this.updateHealthBarVisibility(false);
     }
     
     setHealth(health) {
         this.health = health;
         this.healthBar.setHealth(this.health);
+        this.updateHealthBarVisibility(false);
     }
     
     getHealth() {
@@ -375,6 +385,7 @@ export class Ball extends THREE.Group {
     setMaxHealth(maxHealth) {
         this.maxHealth = maxHealth;
         this.healthBar.setMaxHealth(this.maxHealth);
+        this.updateHealthBarVisibility(false);
     }
 
     isIntersecting() {

@@ -46,6 +46,7 @@ export class Car extends THREE.Group {
   torus: THREE.Mesh;
   torusDrawOnTop: boolean;
   private _torusDrawOnTop?: boolean;
+  private _lastAxisOfRotation: THREE.Vector3 | null;
 
   inertiaTimerX: number;
   inertiaTimerY: number;
@@ -109,6 +110,7 @@ export class Car extends THREE.Group {
     this.torus.rotation.x = degToRad(90);
     this.torusDrawOnTop = false;
     this.add(this.torus);
+    this._lastAxisOfRotation = null;
 
     this.inertiaTimerX = 0;
     this.inertiaTimerY = 0;
@@ -145,6 +147,80 @@ export class Car extends THREE.Group {
       mat.depthTest = !this._torusDrawOnTop;
       mat.depthWrite = !this._torusDrawOnTop;
       mat.needsUpdate = true;
+    }
+  }
+
+  showForwardAxis(): void {
+    this.setForwardAxisVisible(true);
+  }
+
+  hideForwardAxis(): void {
+    this.setForwardAxisVisible(false);
+  }
+
+  setForwardAxisVisible(visible: boolean): void {
+    this.showLine = Boolean(visible);
+    if (this.forwardArrow) {
+      this.forwardArrow.visible = this.showLine;
+    }
+  }
+
+  showHelperDonut(): void {
+    this.setHelperDonutVisible(true);
+  }
+
+  hideHelperDonut(): void {
+    this.setHelperDonutVisible(false);
+  }
+
+  setHelperDonutVisible(visible: boolean): void {
+    this.showTorus = Boolean(visible);
+    if (this.torus) {
+      this.torus.visible = this.showTorus;
+    }
+    if (this.showTorus && this._lastAxisOfRotation) {
+      this.createHelperTorus(this._lastAxisOfRotation.clone(), this._getHelperTorusScale(this._lastAxisOfRotation));
+    }
+  }
+
+  showAxisOfRotation(): void {
+    this.setAxisOfRotationVisible(true);
+  }
+
+  hideAxisOfRotation(): void {
+    this.setAxisOfRotationVisible(false);
+  }
+
+  setAxisOfRotationVisible(visible: boolean): void {
+    this.showAxisOfRotationLine = Boolean(visible);
+    if (this._rotationLine) {
+      this._rotationLine.visible = this.showAxisOfRotationLine;
+    }
+    if (this.showAxisOfRotationLine && this._lastAxisOfRotation) {
+      this.updateAxisOfRotation(this._lastAxisOfRotation.clone());
+    } else if (this.torus) {
+      this.torus.visible = false;
+    }
+  }
+
+  changeDonutColor(color: THREE.ColorRepresentation): void {
+    this._torusMaterial.color.set(color);
+  }
+
+  changeDonutScale(scale: number): void {
+    if (!Number.isFinite(scale)) return;
+    physics.car.torusBaseScale = Math.max(0, scale);
+    if (this._lastAxisOfRotation) {
+      this.createHelperTorus(this._lastAxisOfRotation.clone(), this._getHelperTorusScale(this._lastAxisOfRotation));
+    }
+  }
+
+  changeBoostColor(color: THREE.ColorRepresentation): void {
+    const nextColor = new THREE.Color(color);
+    const hexColor = nextColor.getHex();
+
+    if (this.Boost) {
+      this.Boost.boostColour = hexColor;
     }
   }
 
@@ -203,7 +279,7 @@ export class Car extends THREE.Group {
     this.scale.set(1, 1, 1);
 
     const axis = this.findAxisOfRotation(rotMat);
-    this.showAxisOfRotation(axis);
+    this.updateAxisOfRotation(axis);
   }
 
   boost(boostHeld: boolean, dt: number): void {
@@ -260,7 +336,16 @@ export class Car extends THREE.Group {
     return axis;
   }
 
-  showAxisOfRotation(axis: THREE.Vector3): void {
+  private _getHelperTorusScale(axis: THREE.Vector3): number {
+    const axisDir = axis.clone().normalize();
+    const alignment = Math.abs(this.forward.dot(axisDir));
+    const radius = Math.sqrt(1 - alignment * alignment);
+    return radius * 1.5 * physics.car.torusBaseScale;
+  }
+
+  updateAxisOfRotation(axis: THREE.Vector3): void {
+    this._lastAxisOfRotation = axis.clone();
+
     if (this._rotationLine) {
       const positions = this._rotationLine.geometry.attributes.position.array as Float32Array;
       positions[0] = 0;
@@ -276,10 +361,7 @@ export class Car extends THREE.Group {
       this._rotationLine.visible = this.showAxisOfRotationLine;
 
       if (this.showTorus) {
-        const axisDir = axis.normalize();
-        const alignment = Math.abs(this.forward.dot(axisDir));
-        const radius = Math.sqrt(1 - alignment * alignment);
-        this.createHelperTorus(axisDir, radius * 1.5 * physics.car.torusBaseScale);
+        this.createHelperTorus(axis.clone(), this._getHelperTorusScale(axis));
       } else {
         this.torus.visible = false;
         this.torus.scale.setScalar(0);
@@ -318,7 +400,7 @@ export class Car extends THREE.Group {
   }
 
   updateVisibility(): void {
-    this.forwardArrow.visible = this.showLine;
+    this.setForwardAxisVisible(this.showLine);
   }
 
   getForwardVector(): THREE.Ray {
@@ -399,7 +481,7 @@ export class Car extends THREE.Group {
     return false;
   }
 
-  switchCarModel(modelName: string): boolean {
+  changeCarModel(modelName: string): boolean {
     if (this.currentModel === modelName) return true;
 
     if (!this.carModels.has(modelName)) {
@@ -419,6 +501,10 @@ export class Car extends THREE.Group {
     this.carModels.get(modelName)!.visible = true;
     this.currentModel = modelName;
     return true;
+  }
+
+  switchCarModel(modelName: string): boolean {
+    return this.changeCarModel(modelName);
   }
 
   getCamera(): THREE.PerspectiveCamera {

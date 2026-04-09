@@ -53,11 +53,14 @@ export class Boost extends THREE.Group {
         scene.add(this.particleGroup);
 
         this._particleGeometry = new THREE.SphereGeometry(1, 12, 12);
-        this._materialTemplate = new THREE.MeshBasicMaterial({
+        this._cloudTexture = this._createCloudTexture();
+        this._materialTemplate = new THREE.SpriteMaterial({
+          map: this._cloudTexture,
           color: this.boostColour,
           transparent: true,
-          opacity: 1,
+          opacity: 0.8,
           depthWrite: false,
+          blending: THREE.NormalBlending,
         });
 
         this._particles = [];
@@ -74,22 +77,55 @@ export class Boost extends THREE.Group {
         this._initPool();
     }
 
+    _createCloudTexture() {
+      const size = 64;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+
+      ctx.clearRect(0, 0, size, size);
+      const gradient = ctx.createRadialGradient(
+        size * 0.48,
+        size * 0.48,
+        size * 0.08,
+        size * 0.5,
+        size * 0.5,
+        size * 0.48,
+      );
+      gradient.addColorStop(0, 'rgba(255,255,255,0.85)');
+      gradient.addColorStop(0.35, 'rgba(255,255,255,0.4)');
+      gradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = false;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
     /**
      * Pre-allocates particle meshes for allocation-free runtime updates.
      */
     _initPool() {
       for (let i = 0; i < this._poolSize; i++) {
-        const mesh = new THREE.Mesh(this._particleGeometry, this._materialTemplate.clone());
-        mesh.visible = false;
-        mesh.material.color.set(this.boostColour);
-        mesh.userData.velocity = new THREE.Vector3();
-        mesh.userData.life = 0;
-        mesh.userData.totalLife = 0;
-        mesh.userData.baseOpacity = 0;
-        mesh.userData.baseSize = 0.04;
-        this.particleGroup.add(mesh);
-        this._particles.push(mesh);
-        this._availableParticles.push(mesh);
+        const sprite = new THREE.Sprite(this._materialTemplate.clone());
+        sprite.visible = false;
+        sprite.material.color.set(this.boostColour);
+        sprite.material.rotation = (Math.random() - 0.5) * Math.PI;
+        sprite.userData.velocity = new THREE.Vector3();
+        sprite.userData.life = 0;
+        sprite.userData.totalLife = 0;
+        sprite.userData.baseOpacity = 0;
+        sprite.userData.baseSize = 0.12;
+        this.particleGroup.add(sprite);
+        this._particles.push(sprite);
+        this._availableParticles.push(sprite);
       }
     }
 
@@ -155,8 +191,8 @@ export class Boost extends THREE.Group {
       particle.userData.velocity.copy(this._tempVelocity);
       particle.userData.life = life;
       particle.userData.totalLife = life;
-      particle.userData.baseOpacity = 0.12 + Math.random() * 0.1;
-      particle.userData.baseSize = 0.04 + Math.random() * 0.01;
+      particle.userData.baseOpacity = 0.08 + Math.random() * 0.08;
+      particle.userData.baseSize = 0.09 + Math.random() * 0.06;
       particle.material.color.set(this.boostColour);
     }
     
@@ -178,6 +214,7 @@ export class Boost extends THREE.Group {
           const lifeOpacity = Math.max(0, Math.min(1, p.userData.life * 0.4));
           p.material.opacity = p.userData.baseOpacity * lifeOpacity * fadeIn * fadeOut;
           p.material.transparent = true;
+          p.material.rotation += dt * 0.65;
     
           // Scale is inverse of life, capped at maxScale
           const minLife = 0.05;
@@ -212,6 +249,7 @@ export class Boost extends THREE.Group {
         if (particle.material) particle.material.dispose();
       }
       if (this._materialTemplate) this._materialTemplate.dispose();
+      if (this._cloudTexture) this._cloudTexture.dispose();
       if (this._particleGeometry) this._particleGeometry.dispose();
 
       this._particles.length = 0;

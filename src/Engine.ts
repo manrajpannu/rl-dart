@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import ChallengeMode from './modes/ChallengeMode';
 import FreeplayMode from './modes/Freeplay';
 import { Ball } from './Ball/Ball';
+import { FlowMovement } from './Ball/Movement/FlowMovement'; 
 
 interface ModeLike {
   name?: string;
@@ -190,7 +191,9 @@ export class Engine extends THREE.Group {
       (keyLight as any).shadow.camera.right = 120;
       (keyLight as any).shadow.camera.top = 120;
       (keyLight as any).shadow.camera.bottom = -120;
-      (keyLight as any).shadow.bias = -0.00008;
+      // Normal bias is important on curved meshes to prevent shadow acne/banding.
+      (keyLight as any).shadow.bias = -0.00002;
+      (keyLight as any).shadow.normalBias = 0.02;
       this.add(keyLight);
 
       const fillLight = new THREE.DirectionalLight(0xffffff, 0.95);
@@ -216,11 +219,11 @@ export class Engine extends THREE.Group {
     this.controller = new Controller();
 
     this.currentMode = new FreeplayMode({
-      numBalls: 1,
-      health: 6,
-      movement: null,
-      size: 2,
-      boundary: 15,
+      numBalls: 6,
+      health: 3,
+      movement: FlowMovement,
+      size: 1,
+      boundary: 20,
     });
     this.currentMode.start(this.BallManager);
 
@@ -273,7 +276,9 @@ export class Engine extends THREE.Group {
     this.car.rotate(yaw, pitch, roll, dt);
     this.car.boost(boostHeld, dt);
 
-    this.currentClosestBall = this.BallManager.getClosestBall() ?? null;
+    if (!this.currentClosestBall) {
+      this.currentClosestBall = this.BallManager.getClosestBall() ?? null;
+    }
 
     this.car.updateCamera((this.currentClosestBall ? this.currentClosestBall.position : null) as any, ballCam, dt);
     this.currentMode.update(dt);
@@ -388,3 +393,4 @@ export class Engine extends THREE.Group {
     this._modeStateListeners.forEach(listener => listener(state));
   }
 }
+
