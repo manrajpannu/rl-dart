@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { CarModel, CAR_MODELS } from "./CarModel.js";
 import { physics } from "../PhysicsConfig.js";
 import { degToRad } from "three/src/math/MathUtils.js";
-import { Boost } from "./boost/Boost.js";
+import { BOOST_TYPES, createBoost } from "./boost/BoostFactory.js";
 
 /**
  * Player-controlled car with rotational physics and chase-camera behavior.
@@ -23,7 +23,8 @@ export class Car extends THREE.Group {
     this.rotation.x = Math.PI / 2;
     this._lastInertia = { x: 'null', y: 'null', z: 'null' };
 
-    this.Boost = new Boost(scene);
+    this.boostType = 'Pulse';
+    this.Boost = createBoost(scene, this.boostType);
     this.add(this.Boost);
     
     // Visuals
@@ -59,7 +60,7 @@ export class Car extends THREE.Group {
     
     // Helper Donut
     this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 32, 32);
-    this._torusMaterial = new THREE.MeshPhongMaterial({ color: 'magenta'});
+    this._torusMaterial = new THREE.MeshStandardMaterial({ color: 'magenta'});
     this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
     this.torus.visible = false;
     this.torus.rotation.x = degToRad(90);
@@ -218,6 +219,29 @@ export class Car extends THREE.Group {
     }
 
     this.Boost.updateParticles(dt);
+  }
+
+  /**
+   * Switches boost implementation at runtime.
+   * @param {keyof typeof BOOST_TYPES} type
+   * @param {object} [options]
+   */
+  setBoostType(type, options = {}) {
+    if (!BOOST_TYPES[type]) {
+      console.warn(`Unknown boost type: ${type}`);
+      return false;
+    }
+    if (type === this.boostType) return true;
+
+    if (this.Boost && typeof this.Boost.dispose === 'function') {
+      this.Boost.dispose();
+    }
+    if (this.Boost) this.remove(this.Boost);
+
+    this.boostType = type;
+    this.Boost = createBoost(this.parent || this, this.boostType, options);
+    this.add(this.Boost);
+    return true;
   }
 
   

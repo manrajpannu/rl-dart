@@ -75,72 +75,72 @@ export function createUI(car, controller,  ball, map, renderer) {
 
     carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
     // Visuals Folder
-    const visualsFolder = carFolder.addFolder('Visuals');
-    visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => car.updateVisibility());
-    visualsFolder.add( car, 'showAxisOfRotationLine').name('Show Axis of Rotation');
+    // const visualsFolder = carFolder.addFolder('Visuals');
+    // visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => car.updateVisibility());
+    // visualsFolder.add( car, 'showAxisOfRotationLine').name('Show Axis of Rotation');
 
-        const boostFolder = visualsFolder.addFolder('Boost');
-        boostFolder.add( car.Boost, 'boostGap', 0, 0.3).name('Gap')
-        boostFolder.add( car.Boost, 'particlesPerSecond', 0, 300).name('Amount/s')
-        boostFolder.add( car.Boost, 'particleSpread', 0, 1).name('Spread')
-        boostFolder.add( car.Boost, 'particleRandomness', 0, 3).name('Randomness')
+        // const boostFolder = visualsFolder.addFolder('Boost');
+        // boostFolder.add( car.Boost, 'boostGap', 0, 0.3).name('Gap')
+        // boostFolder.add( car.Boost, 'particlesPerSecond', 0, 300).name('Amount/s')
+        // boostFolder.add( car.Boost, 'particleSpread', 0, 1).name('Spread')
+        // boostFolder.add( car.Boost, 'particleRandomness', 0, 3).name('Randomness')
 
-        const fadeFolder = boostFolder.addFolder('Fade');
-        fadeFolder.add( car.Boost, 'particleFadeInFactor', 0,8).name('Fade In Factor')
-        fadeFolder.add( car.Boost, 'particleFadeInTime', 0, 3).name('Fade In Time')
-        fadeFolder.add( car.Boost, 'particleFadeOutFactor', 0,8).name('Fade Out Factor')
-        fadeFolder.add( car.Boost, 'particleFadeOutTime', 0, 3).name('Fade Out Time')
+        // const fadeFolder = boostFolder.addFolder('Fade');
+        // fadeFolder.add( car.Boost, 'particleFadeInFactor', 0,8).name('Fade In Factor')
+        // fadeFolder.add( car.Boost, 'particleFadeInTime', 0, 3).name('Fade In Time')
+        // fadeFolder.add( car.Boost, 'particleFadeOutFactor', 0,8).name('Fade Out Factor')
+        // fadeFolder.add( car.Boost, 'particleFadeOutTime', 0, 3).name('Fade Out Time')
 
-        boostFolder.add( car.Boost, 'particleMaxScale', 0.1, 5).name('Max Particle Scale')
-        boostFolder.add( car.Boost, 'particleScaleFactor', 0.1, 5).name('Particle Scale Factor')
+        // boostFolder.add( car.Boost, 'particleMaxScale', 0.1, 5).name('Max Particle Scale')
+        // boostFolder.add( car.Boost, 'particleScaleFactor', 0.1, 5).name('Particle Scale Factor')
 
-        const boostColorObj = { color: '#ededed' };
-        boostFolder.addColor(boostColorObj, 'color').name('Boost Color').onChange((value) => {
-            if (typeof value === 'string') {
-                car.Boost.boostColour = parseInt(value.replace('#', '0x'), 16);
-            } else {
-                car.Boost.boostColour = value;
-            }
-        });
+        // const boostColorObj = { color: '#ededed' };
+        // boostFolder.addColor(boostColorObj, 'color').name('Boost Color').onChange((value) => {
+        //     if (typeof value === 'string') {
+        //         car.Boost.boostColour = parseInt(value.replace('#', '0x'), 16);
+        //     } else {
+        //         car.Boost.boostColour = value;
+        //     }
+        // });
 
         //  Helper Donut Folder
-        const helperDonutFolder = visualsFolder.addFolder('Helper Donut');
-        helperDonutFolder.add( car, 'showTorus').name('Show Helper Donut')
-        helperDonutFolder.add( car, 'torusDrawOnTop').name('Always On Top').onChange((value) => car.setTorusDrawOnTop(value));
-        helperDonutFolder.add( physics.car, 'torusBaseScale', 0, 2 ).name('Donut Scale');
+        // const helperDonutFolder = visualsFolder.addFolder('Helper Donut');
+        // helperDonutFolder.add( car, 'showTorus').name('Show Helper Donut')
+        // helperDonutFolder.add( car, 'torusDrawOnTop').name('Always On Top').onChange((value) => car.setTorusDrawOnTop(value));
+        // helperDonutFolder.add( physics.car, 'torusBaseScale', 0, 2 ).name('Donut Scale');
 
         // Color picker for helper donut
-        const donutColorObj = { color: '#ff00ff' };
-        helperDonutFolder.addColor(donutColorObj, 'color').name('Donut Color').onChange((value) => {
-            if (car._torusMaterial) {
-                car._torusMaterial.color.set(value);
-            }
-        });
+        // const donutColorObj = { color: '#ff00ff' };
+        // helperDonutFolder.addColor(donutColorObj, 'color').name('Donut Color').onChange((value) => {
+        //     if (car._torusMaterial) {
+        //         car._torusMaterial.color.set(value);
+        //     }
+        // });
 
 
     
     // Physics Folder
-    const physicsFolder = carFolder.addFolder('Physics');
+    // const physicsFolder = carFolder.addFolder('Physics');
 
-    // Pitch subfolder
-    const pitchFolder = physicsFolder.addFolder('Pitch');
-    pitchFolder.add(car.rotationSpeed, 'x', 0, 100).name('Pitch Rotation Speed');
-    pitchFolder.add(car.airDragCoefficient, 'x', 0.95, 1).name('Pitch Drag');
-    pitchFolder.add(car.maxRotationSpeed, 'x', 0, 100).name('Pitch Max Speed');
+    // // Pitch subfolder
+    // const pitchFolder = physicsFolder.addFolder('Pitch');
+    // pitchFolder.add(car.rotationSpeed, 'x', 0, 100).name('Pitch Rotation Speed');
+    // pitchFolder.add(car.airDragCoefficient, 'x', 0.95, 1).name('Pitch Drag');
+    // pitchFolder.add(car.maxRotationSpeed, 'x', 0, 100).name('Pitch Max Speed');
 
-    // Yaw subfolder
-    const yawFolder = physicsFolder.addFolder('Yaw');
-    yawFolder.add(car.rotationSpeed, 'y', 0, 100).name('Yaw Rotation Speed');
-    yawFolder.add(car.airDragCoefficient, 'y', 0.95, 1).name('Yaw Drag');
-    yawFolder.add(car.maxRotationSpeed, 'y', 0, 100).name('Yaw Max Speed');
+    // // Yaw subfolder
+    // const yawFolder = physicsFolder.addFolder('Yaw');
+    // yawFolder.add(car.rotationSpeed, 'y', 0, 100).name('Yaw Rotation Speed');
+    // yawFolder.add(car.airDragCoefficient, 'y', 0.95, 1).name('Yaw Drag');
+    // yawFolder.add(car.maxRotationSpeed, 'y', 0, 100).name('Yaw Max Speed');
 
-    // Roll subfolder
-    const rollFolder = physicsFolder.addFolder('Roll');
-    rollFolder.add(car.rotationSpeed, 'z', 0, 100).name('Roll Rotation Speed');
-    rollFolder.add(car.airDragCoefficient, 'z', 0.95, 1).name('Roll Drag');
-    rollFolder.add(car.maxRotationSpeed, 'z', 0, 100).name('Roll Max Speed');
+    // // Roll subfolder
+    // const rollFolder = physicsFolder.addFolder('Roll');
+    // rollFolder.add(car.rotationSpeed, 'z', 0, 100).name('Roll Rotation Speed');
+    // rollFolder.add(car.airDragCoefficient, 'z', 0.95, 1).name('Roll Drag');
+    // rollFolder.add(car.maxRotationSpeed, 'z', 0, 100).name('Roll Max Speed');
 
-    physicsFolder.close();
+    // physicsFolder.close();
 
 
     // Ball Folder

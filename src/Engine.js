@@ -149,11 +149,11 @@ export class Engine extends THREE.Group {
     this.controller = new Controller();
 
     this.currentMode = new FreeplayMode({
-      numBalls: 20,
-      health: 5,
+      numBalls: 1,
+      health: 6,
       movement: null,
-      size: 10,
-      boundary: 40,
+      size: 2,
+      boundary: 15,
     });
     this.currentMode.start(this.BallManager);
     this._onHit = () => this.currentMode.onHit();

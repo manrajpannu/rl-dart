@@ -1,5 +1,21 @@
 import * as THREE from "three";
 
+export const BOOST_DEFAULTS = {
+  boostColour: 0xededed,
+  boostGap: 0.2,
+  particlesPerSecond: 140,
+  particleLife: 1.5,
+  particleSpread: 0.2,
+  particleRandomness: 0.0,
+  particleFadeInFactor: 4.7,
+  particleFadeOutFactor: 3.456,
+  particleFadeInTime: 0.159,
+  particleFadeOutTime: 1.971,
+  particleScaleFactor: 1.2,
+  particleMaxScale: 2.0,
+  poolSafetyFactor: 1.5,
+};
+
 /**
  * Pooled boost particle system attached to the car.
  *
@@ -9,25 +25,28 @@ export class Boost extends THREE.Group {
 
   /**
    * @param {THREE.Object3D} scene Parent scene/group that owns particle visuals.
+   * @param {Partial<typeof BOOST_DEFAULTS>} [options] Optional runtime tuning.
    */
-    constructor(scene) {
+  constructor(scene, options = {}) {
         super();
-    this.scene = scene;
-        this.boostColour = 0xededed;
-        this.boostGap = 0.2;
-        this.particlesPerSecond = 140;
-    this._emitAccumulator = 0;
-        this.particleLife = 1.5;
-        this.particleSpread = 0.2;
-        this.particleRandomness = 0.0;
-        this.particleFadeInFactor = 4.7;
-        this.particleFadeOutFactor = 3.456;
-        this.particleFadeInTime = 0.159;
-        this.particleFadeOutTime = 1.971;
-        this.particleScaleFactor = 1.2;
-        this.particleMaxScale = 2.0;
+    const cfg = { ...BOOST_DEFAULTS, ...options };
 
-        this.poolSafetyFactor = 1.5;
+    this.scene = scene;
+    this.boostColour = cfg.boostColour;
+    this.boostGap = cfg.boostGap;
+    this.particlesPerSecond = cfg.particlesPerSecond;
+    this._emitAccumulator = 0;
+    this.particleLife = cfg.particleLife;
+    this.particleSpread = cfg.particleSpread;
+    this.particleRandomness = cfg.particleRandomness;
+    this.particleFadeInFactor = cfg.particleFadeInFactor;
+    this.particleFadeOutFactor = cfg.particleFadeOutFactor;
+    this.particleFadeInTime = cfg.particleFadeInTime;
+    this.particleFadeOutTime = cfg.particleFadeOutTime;
+    this.particleScaleFactor = cfg.particleScaleFactor;
+    this.particleMaxScale = cfg.particleMaxScale;
+
+    this.poolSafetyFactor = cfg.poolSafetyFactor;
         this._poolSize = Math.ceil(this.particlesPerSecond * 2 * this.particleLife * this.poolSafetyFactor);
 
         this.particleGroup = new THREE.Group();
@@ -55,13 +74,14 @@ export class Boost extends THREE.Group {
         this._initPool();
     }
 
-      /**
-       * Pre-allocates particle meshes for allocation-free runtime updates.
-       */
+    /**
+     * Pre-allocates particle meshes for allocation-free runtime updates.
+     */
     _initPool() {
       for (let i = 0; i < this._poolSize; i++) {
         const mesh = new THREE.Mesh(this._particleGeometry, this._materialTemplate.clone());
         mesh.visible = false;
+        mesh.material.color.setHex(this.boostColour);
         mesh.userData.velocity = new THREE.Vector3();
         mesh.userData.life = 0;
         mesh.userData.totalLife = 0;
@@ -72,12 +92,6 @@ export class Boost extends THREE.Group {
         this._availableParticles.push(mesh);
       }
     }
-      /**
-       * Emits new particles from the rear boost nozzles using dt-based rate control.
-       * @param {THREE.Vector3} position Car world position.
-       * @param {THREE.Quaternion} quaternion Car world orientation.
-       * @param {number} dt Fixed simulation delta time.
-       */
 
     _acquireParticle() {
       if (this._availableParticles.length === 0) return null;
@@ -101,7 +115,12 @@ export class Boost extends THREE.Group {
       this._availableParticles.push(particle);
     }
 
-    
+    /**
+     * Emits new particles from the rear boost nozzles using dt-based rate control.
+     * @param {THREE.Vector3} position Car world position.
+     * @param {THREE.Quaternion} quaternion Car world orientation.
+     * @param {number} dt Fixed simulation delta time.
+     */
     emitParticles(position, quaternion, dt) {
       // Emit particles from the back of the car, rate controlled by dt
       this._emitAccumulator += dt * this.particlesPerSecond;
@@ -138,6 +157,7 @@ export class Boost extends THREE.Group {
       particle.userData.totalLife = life;
       particle.userData.baseOpacity = 0.12 + Math.random() * 0.1;
       particle.userData.baseSize = 0.04 + Math.random() * 0.01;
+      particle.material.color.setHex(this.boostColour);
     }
     
     /**
@@ -198,4 +218,4 @@ export class Boost extends THREE.Group {
       this._activeParticles.length = 0;
       this._availableParticles.length = 0;
     }
-    }
+}
