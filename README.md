@@ -18,6 +18,57 @@ https://github.com/user-attachments/assets/6278cd9b-d782-4125-8ba6-1a806838323a
 - Adjustable game speed, drag coefficients, and rotation limits
 - Ball chase, hit window, and timeout logic for realistic training
 
+## Architecture Overview
+
+The app uses a fixed-step simulation driven by the render loop in [src/main.js](src/main.js):
+
+1. Frame time is measured and scaled by `physics.world.gameSpeed`.
+2. Time is accumulated into an accumulator.
+3. The engine is updated in fixed `FIXED_DT` steps (`1 / 136`) while enough time is available.
+4. The scene is rendered once per browser frame.
+
+This separates simulation stability from monitor refresh rate and keeps control/physics behavior consistent.
+
+Core runtime orchestration lives in [src/Engine.js](src/Engine.js). Per fixed update it:
+
+1. Reads normalized controls from [src/Controller.js](src/Controller.js).
+2. Updates ball interactions through [src/Ball/BallManager.js](src/Ball/BallManager.js).
+3. Applies car rotation/boost in [src/Car/Car.js](src/Car/Car.js).
+4. Updates camera target and smoothing.
+5. Advances active mode logic (`Freeplay` or `Challenge`).
+
+## Gameplay Mechanics
+
+### Ball Targeting and Damage
+
+Ball hit detection is ray-based. The car provides a forward ray and the ball system computes intersections each fixed update.
+
+Important rule: only the first ball intersected by the ray can be damaged in that frame.
+
+- [src/Ball/BallManager.js](src/Ball/BallManager.js) finds the nearest intersection (`findFirstIntersectedBall`) and passes a hit gate into each ball update.
+- [src/Ball/Ball.js](src/Ball/Ball.js) respects that gate (`canBeHit`) so non-front balls are ignored for damage even if they are also intersected.
+
+### Health, Hit Rate, and Respawn
+
+- Balls can have health (`maxHealth`, current `health`, `damageAmount`).
+- Damage is rate-limited per ball using DPS timing (`hitAccumulator`).
+- When health reaches zero, kill events are emitted and the ball is respawned/reset.
+
+### Modes
+
+- Freeplay ([src/modes/Freeplay.js](src/modes/Freeplay.js)): endless training with score counters.
+- Challenge ([src/modes/ChallengeMode.js](src/modes/ChallengeMode.js)): adds countdown + time limit on top of freeplay behavior.
+- Base mode contract is in [src/modes/Mode.js](src/modes/Mode.js) (`start`, `update`, `stop`).
+
+### Tuning
+
+Gameplay and camera tuning are centralized in [src/physicsConfig.js](src/physicsConfig.js):
+
+- `physics.car`: rotation speed, drag, max speed, helper scale
+- `physics.camera`: FOV and chase camera framing
+- `physics.ball`: trainer targeting/chase settings
+- `physics.world`: global simulation speed
+
 ## UI Features & Controls
 
 The lil-gui panel (top-right) provides live controls for the following features:

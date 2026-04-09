@@ -97,7 +97,16 @@ function drawDeadzone(yaw, pitch) {
   });
 }
 
+/**
+ * Root gameplay coordinator.
+ *
+ * Engine owns the major gameplay domains (car, balls, map, controller, mode)
+ * and defines the per-frame execution order used by the simulation.
+ */
 export class Engine extends THREE.Group {
+  /**
+   * @param {THREE.WebGLRenderer} renderer Active renderer instance used by UI wiring.
+   */
   constructor(renderer) {
     super();
     {
@@ -174,6 +183,18 @@ export class Engine extends THREE.Group {
   }
 
 
+  /**
+   * Advances one fixed simulation step.
+   *
+   * Update order is intentional:
+   * 1) read player/controller input
+   * 2) update balls and targeting state
+   * 3) apply car rotation/boost
+   * 4) resolve camera target and camera smoothing
+   * 5) advance mode state and debug deadzone visualization
+   *
+   * @param {number} dt Fixed simulation delta time in seconds.
+   */
   update(dt) {
     const { yaw, pitch, roll, boostHeld, ballCam } = this.controller.handleController();
     this.BallManager.update(this.car.getForwardVector(), boostHeld, dt);
@@ -192,10 +213,19 @@ export class Engine extends THREE.Group {
     drawDeadzone(yaw, -pitch);
   }
 
+  /**
+   * @returns {THREE.Camera}
+   */
   getCamera() {
     return this.car.getCamera();
   }
 
+  /**
+   * Swap active gameplay mode while preserving shared world entities.
+   * Rebinds BallManager events so hit/kill callbacks route to the new mode.
+   *
+   * @param {{ start: (ballManager: BallManager) => void, onHit: () => void, onKill: (ball?: any) => void }} newMode
+   */
   setMode(newMode) {
     if (this.car && this.car.Boost && typeof this.car.Boost.reset === 'function') {
       this.car.Boost.reset();

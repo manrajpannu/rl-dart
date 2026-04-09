@@ -1,6 +1,12 @@
 
 import * as THREE from 'three';
 
+/**
+ * Endless sandbox mode.
+ *
+ * Freeplay keeps spawning/tracking a configurable ball set and updates score
+ * counters from BallManager hit/kill events without any time limit.
+ */
 class FreeplayMode {
     /**
      * @param {Object} options
@@ -115,6 +121,10 @@ class FreeplayMode {
         return dt;
     }
 
+    /**
+     * (Re)initializes freeplay session state and recreates balls.
+     * @param {import('../Ball/BallManager').BallManager} BallManager
+     */
     start(BallManager) {
         this.hits = 0;
         this.kills = 0;
@@ -133,6 +143,10 @@ class FreeplayMode {
         this.score += 10;
     }
 
+    /**
+     * Handles kill scoring and immediate ball respawn in freeplay.
+     * @param {import('../Ball/Ball').Ball | undefined} ball
+     */
     onKill(ball) {
         if (!this.active) return;
         this.kills += 1;

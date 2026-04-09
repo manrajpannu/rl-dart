@@ -7,6 +7,10 @@ const planeMat = new THREE.MeshBasicMaterial( {
     side: THREE.DoubleSide,
 } );
 
+/**
+ * Training ground map plane.
+ * Generates a textured ground mesh used as the visual play area.
+ */
 export class Map extends THREE.Group {
 
     constructor(planeSize = 160) {
@@ -14,6 +18,9 @@ export class Map extends THREE.Group {
         this.planeSize = planeSize;
     }
 
+    /**
+     * Builds the ground plane and texture tiling based on configured plane size.
+     */
     gen() {
 
         texture.wrapS = THREE.RepeatWrapping;

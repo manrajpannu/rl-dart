@@ -1,7 +1,15 @@
 import * as THREE from "three";
 
+/**
+ * Pooled boost particle system attached to the car.
+ *
+ * Uses pre-allocated meshes to avoid per-frame allocations while boosting.
+ */
 export class Boost extends THREE.Group {
 
+  /**
+   * @param {THREE.Object3D} scene Parent scene/group that owns particle visuals.
+   */
     constructor(scene) {
         super();
     this.scene = scene;
@@ -47,6 +55,9 @@ export class Boost extends THREE.Group {
         this._initPool();
     }
 
+      /**
+       * Pre-allocates particle meshes for allocation-free runtime updates.
+       */
     _initPool() {
       for (let i = 0; i < this._poolSize; i++) {
         const mesh = new THREE.Mesh(this._particleGeometry, this._materialTemplate.clone());
@@ -61,6 +72,12 @@ export class Boost extends THREE.Group {
         this._availableParticles.push(mesh);
       }
     }
+      /**
+       * Emits new particles from the rear boost nozzles using dt-based rate control.
+       * @param {THREE.Vector3} position Car world position.
+       * @param {THREE.Quaternion} quaternion Car world orientation.
+       * @param {number} dt Fixed simulation delta time.
+       */
 
     _acquireParticle() {
       if (this._availableParticles.length === 0) return null;
@@ -123,6 +140,10 @@ export class Boost extends THREE.Group {
       particle.userData.baseSize = 0.04 + Math.random() * 0.01;
     }
     
+    /**
+     * Advances all active particles and retires expired ones back into the pool.
+     * @param {number} dt
+     */
     updateParticles(dt) {
         if (!this._activeParticles) return;
         for (let i = this._activeParticles.length - 1; i >= 0; i--) {
@@ -149,6 +170,9 @@ export class Boost extends THREE.Group {
         }
     }
 
+    /**
+     * Clears active particles and resets emission state.
+     */
     reset() {
       for (let i = this._activeParticles.length - 1; i >= 0; i--) {
         this._retireParticle(i);
@@ -156,6 +180,9 @@ export class Boost extends THREE.Group {
       this._emitAccumulator = 0;
     }
 
+    /**
+     * Releases pooled resources and removes particle group from scene graph.
+     */
     dispose() {
       this.reset();
       if (this.particleGroup.parent) {

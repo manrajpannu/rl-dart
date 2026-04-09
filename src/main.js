@@ -4,6 +4,15 @@ import { Engine } from './Engine.js';
 import { physics } from './PhysicsConfig.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
+/**
+ * Application entry point.
+ *
+ * Responsibilities:
+ * - Create renderer and scene-level rendering settings
+ * - Create the game Engine and attach it to the scene graph
+ * - Run a fixed-timestep simulation loop for deterministic updates
+ * - Render each frame using the camera provided by Engine
+ */
 const container = document.getElementById('three-container');
 
 const stats = new Stats()
@@ -35,12 +44,20 @@ const engine = new Engine(renderer);
 scene.add(engine);
 
 let lastTime = performance.now();
+// Simulation updates run at a fixed cadence independent of render framerate.
 const FIXED_DT = 1.0 / 136.0; 
 let accumulator = 0;
 
 
 
 
+/**
+ * Render loop with fixed-step simulation.
+ *
+ * Frame time is scaled by world gameSpeed and accumulated.
+ * The engine is then stepped in fixed increments to keep gameplay/physics
+ * consistent across variable monitor refresh rates.
+ */
 function animate() {
   requestAnimationFrame(animate);
   const currentTime = performance.now();

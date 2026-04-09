@@ -18,6 +18,13 @@ export class BallManager extends THREE.Group {
         /** @type {import('./Ball').Ball[]} */
         this.balls = [];
         this.selectedIndex = 0;
+        /**
+         * Event listeners keyed by event name.
+         * Events emitted by this manager:
+         * - hit: fired when at least one ball registers a hit this frame
+         * - killed: fired with the killed ball when a health bar reaches zero
+         * @type {Record<string, Array<(data?: any) => void>>}
+         */
         this.listeners = {};
     }
     
@@ -190,6 +197,8 @@ export class BallManager extends THREE.Group {
         let hit = false;
         let killedBall = null;
 
+        // Core targeting rule: only the first ray intersection can receive
+        // hit/damage processing during this frame.
         const firstIntersectedBall = this.findFirstIntersectedBall(forwardVector);
 
         this.balls.forEach(ball => {

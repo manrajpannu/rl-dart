@@ -1,6 +1,12 @@
 import * as THREE from 'three';
 import FreeplayMode from './Freeplay.js';
 
+/**
+ * Timed score-attack mode.
+ *
+ * Extends freeplay scoring/spawn behavior while adding a countdown gate and
+ * a visible timer that ends the run when time reaches zero.
+ */
 class ChallengeMode extends FreeplayMode {
     static _ensureOverlay() {
         if (!document.getElementById('challenge-overlay')) {
@@ -103,6 +109,10 @@ class ChallengeMode extends FreeplayMode {
         }
     }
 
+    /**
+     * Starts challenge state, then runs a short countdown before activation.
+     * @param {import('../Ball/BallManager').BallManager} BallManager
+     */
     async start(BallManager) {
         super.start(BallManager);
         this.timeElapsed = this.timeLimit;

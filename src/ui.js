@@ -4,6 +4,10 @@ import { CAR_MODELS } from './Car/CarModel.js';
 import { Car } from './Car/Car.js';
 import { Ball } from './Ball/Ball.js';
 
+/**
+ * Restores previously saved GUI preset (if present) from localStorage.
+ * @param {GUI} gui
+ */
 function loadPreset(gui) {
         const presetString = localStorage.getItem('gui-preset');
         if (presetString) {
@@ -27,6 +31,15 @@ function youtuberMode(mode, map, renderer)
 }
 
 
+/**
+ * Builds the runtime tweak panel for world, controller, car, boost, and camera.
+ *
+ * @param {Car} car
+ * @param {import('./Controller').Controller} controller
+ * @param {Ball | undefined} ball
+ * @param {import('./Map').Map} map
+ * @param {import('three').WebGLRenderer} renderer
+ */
 export function createUI(car, controller,  ball, map, renderer) {
 
     const gui = new GUI();

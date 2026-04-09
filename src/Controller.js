@@ -1,14 +1,34 @@
 // Deadzone helper
 
 
+/**
+ * Applies independent axis deadzone clipping.
+ * @param {number} value
+ * @param {number} deadzone
+ * @returns {number}
+ */
 const crossDeadzone = (value, deadzone = 0.10) => {
   return Math.abs(value) < deadzone ? 0 : value;
 };
 
+/**
+ * Applies radial deadzone clipping in stick space.
+ * @param {number} x
+ * @param {number} y
+ * @param {number} deadzone
+ * @returns {{ x: number, y: number }}
+ */
 const circleDeadzone = (x, y, deadzone = 0.10) => {
   return Math.hypot(x, y) < deadzone ? { x: 0, y: 0 } : { x, y };
 };
 
+/**
+ * Remaps circular stick input domain to square domain.
+ * This preserves edge reach when users prefer square deadzone behavior.
+ * @param {number} x
+ * @param {number} y
+ * @returns {{ x: number, y: number }}
+ */
 function circleToSquare(x, y) {
   if (x === 0 && y === 0) return { x: 0, y: 0 }; // center
   const r = Math.hypot(x, y);           // sqrt(x*x + y*y)
@@ -20,6 +40,9 @@ function circleToSquare(x, y) {
   return { x: cosT * scale, y: sinT * scale };
 }
 
+/**
+ * Aggregates keyboard/mouse/gamepad state into normalized control outputs.
+ */
 export class Controller {
     constructor() {
 
@@ -137,6 +160,12 @@ export class Controller {
       }
     }
 
+    /**
+     * Reads current input sources and returns one merged control frame.
+     * Keyboard input has priority over gamepad on each axis when non-zero.
+     *
+     * @returns {{ pitch: number, yaw: number, roll: number, boostHeld: boolean, ballCam: boolean }}
+     */
     handleController() {
       let pitch = 0, yaw = 0, roll = 0;
       let boostHeld = false;

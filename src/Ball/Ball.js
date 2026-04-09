@@ -129,7 +129,9 @@ export class Ball extends THREE.Group {
      * @param {boolean} boost Whether damage input is currently active.
      * @param {number} dt Delta time in seconds.
      * @param {THREE.Vector3|null} collisionContext Optional car position for exclusion radius.
-     * @param {boolean} canBeHit If false, this ball is ignored by hit logic for this frame.
+        * @param {boolean} canBeHit
+        * If false, this ball may still move but it is excluded from hit/damage logic.
+        * BallManager uses this to enforce first-intersection-only damage each frame.
      */
     update(ray, boost, dt, collisionContext = null, canBeHit = true) {
         if (this.movement) {

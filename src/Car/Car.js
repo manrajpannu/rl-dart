@@ -4,7 +4,14 @@ import { physics } from "../PhysicsConfig.js";
 import { degToRad } from "three/src/math/MathUtils.js";
 import { Boost } from "./boost/Boost.js";
 
+/**
+ * Player-controlled car with rotational physics and chase-camera behavior.
+ */
 export class Car extends THREE.Group {
+  /**
+   * @param {THREE.Object3D} scene Parent scene/group used by boost effects.
+   * @param {number} dps Maximum shoot sound trigger rate.
+   */
   constructor(scene, dps = 5) {
     super();
     this.carModels = new Map();
@@ -94,6 +101,18 @@ export class Car extends THREE.Group {
     }
   }
 
+  /**
+   * Integrates one rotation step using input impulses + drag damping.
+   *
+   * Inputs are first mapped into local pitch/yaw/roll acceleration,
+   * accumulated into angular velocity, then attenuated by air-drag.
+   * The result is converted to a quaternion and applied to this transform.
+   *
+   * @param {number} yaw
+   * @param {number} pitch
+   * @param {number} roll
+   * @param {number} dt Fixed simulation delta time in seconds.
+   */
   rotate(yaw, pitch, roll, dt) {
     const inputVec = new THREE.Vector3();
    
@@ -300,6 +319,15 @@ export class Car extends THREE.Group {
     this.ballCam = !this.ballCam;
   }
 
+  /**
+   * Smoothly updates chase camera position/look target.
+   * When ball cam is enabled and a target exists, camera orbits to keep ball in view.
+   * Otherwise camera follows car forward orientation.
+   *
+   * @param {THREE.Vector3|null} ballPosition
+   * @param {boolean} ballCam
+   * @param {number} dt
+   */
   updateCamera(ballPosition, ballCam, dt) {
     // If ballPosition is null or undefined, act as if ballCam is off
     if (!ballPosition) ballCam = false;

@@ -1,5 +1,14 @@
 import { max } from "three/tsl";
 
+/**
+ * Central gameplay tuning values.
+ *
+ * Domains:
+ * - car: rotational response, damping, and helper visuals
+ * - camera: chase camera framing and FOV
+ * - ball: trainer targeting/chase behavior toggles
+ * - world: global simulation speed multiplier
+ */
 export const physics = {
     car: {
         body: 'fennec',
