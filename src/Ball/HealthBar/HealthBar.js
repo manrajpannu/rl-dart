@@ -1,32 +1,53 @@
 import * as THREE from 'three';
 
 export class HealthBar extends THREE.Group {
-    constructor(width = 1, height = 0.1, radius = 0.05, maxHealth, health) {
+    constructor(width = 1, height = 0.06, radius = 0.05, maxHealth, health) {
         super();
         this.width = width;
         this.height = height;
         this.radius = radius;
+        this.squirclePower = 6;
+        this.cornerRadiusRatio = 0.3;
         this.maxHealth = maxHealth;
         this.health = health;
 
         // Create border (thick white)
         const borderThickness = 0.03 * Math.max(width, height);
-        this.borderMesh = this._createRoundedRectMesh(width + borderThickness, height + borderThickness, radius + borderThickness * 0.5, 'black');
+        this.borderMesh = this._createSquircleMesh(
+            width + borderThickness,
+            height + borderThickness,
+            this.squirclePower,
+            this.cornerRadiusRatio,
+            'black'
+        );
         this.borderMesh.position.z = -0.02;
         this.add(this.borderMesh);
 
         // Create background (missing health)
-        this.bgMesh = this._createRoundedRectMesh(width, height, radius, 0x333333);
+        this.bgMesh = this._createSquircleMesh(
+            width,
+            height,
+            this.squirclePower,
+            this.cornerRadiusRatio,
+            0x333333
+        );
         this.bgMesh.position.z = -0.01;
         this.add(this.bgMesh);
 
         // Create foreground (current health)
-        this.fgMesh = this._createRoundedRectMesh(width, height, radius, 0xff0000);
+        this.fgMesh = this._createSquircleMesh(
+            width,
+            height,
+            this.squirclePower,
+            this.cornerRadiusRatio,
+            0xff0000
+        );
         this.fgMesh.position.z = 0.01; // Slightly in front
         this.add(this.fgMesh);
 
         // For billboarding
         this.matrixAutoUpdate = true;
+        this._updateHealthBar();
     }
 
     // Public function to update health bar scale
@@ -34,23 +55,54 @@ export class HealthBar extends THREE.Group {
         this.scale.set(scale, scale, scale);
     }
 
-    _createRoundedRectShape(width, height, radius) {
+    _createSquircleBarShape(width, height, power = 6, cornerRadiusRatio = 0.3, cornerSegments = 28) {
         const shape = new THREE.Shape();
-        shape.moveTo(-width / 2 + radius, -height / 2);
-        shape.lineTo(width / 2 - radius, -height / 2);
-        shape.quadraticCurveTo(width / 2, -height / 2, width / 2, -height / 2 + radius);
-        shape.lineTo(width / 2, height / 2 - radius);
-        shape.quadraticCurveTo(width / 2, height / 2, width / 2 - radius, height / 2);
-        shape.lineTo(-width / 2 + radius, height / 2);
-        shape.quadraticCurveTo(-width / 2, height / 2, -width / 2, height / 2 - radius);
-        shape.lineTo(-width / 2, -height / 2 + radius);
-        shape.quadraticCurveTo(-width / 2, -height / 2, -width / 2 + radius, -height / 2);
+        const safeWidth = Math.max(0.0001, width);
+        const safeHeight = Math.max(0.0001, height);
+        const halfW = safeWidth / 2;
+        const halfH = safeHeight / 2;
+        const cornerRadius = Math.max(
+            0.0001,
+            Math.min(safeHeight * cornerRadiusRatio, halfW, halfH)
+        );
+        const innerHalfW = Math.max(0, halfW - cornerRadius);
+        const n = Math.max(2.1, power);
+        let started = false;
+
+        const appendCorner = (centerX, centerY, startAngle, endAngle) => {
+            for (let i = 0; i <= cornerSegments; i += 1) {
+                if (started && i === 0) {
+                    continue;
+                }
+
+                const t = i / cornerSegments;
+                const angle = startAngle + (endAngle - startAngle) * t;
+                const cosA = Math.cos(angle);
+                const sinA = Math.sin(angle);
+                const x = centerX + cornerRadius * Math.sign(cosA) * Math.pow(Math.abs(cosA), 2 / n);
+                const y = centerY + cornerRadius * Math.sign(sinA) * Math.pow(Math.abs(sinA), 2 / n);
+
+                if (!started) {
+                    shape.moveTo(x, y);
+                    started = true;
+                } else {
+                    shape.lineTo(x, y);
+                }
+            }
+        };
+
+        appendCorner(-innerHalfW, halfH - cornerRadius, Math.PI, Math.PI / 2); // top-left
+        appendCorner(innerHalfW, halfH - cornerRadius, Math.PI / 2, 0); // top-right
+        appendCorner(innerHalfW, -halfH + cornerRadius, 0, -Math.PI / 2); // bottom-right
+        appendCorner(-innerHalfW, -halfH + cornerRadius, -Math.PI / 2, -Math.PI); // bottom-left
+
+        shape.closePath();
         return shape;
     }
 
-    _createRoundedRectMesh(width, height, radius, color) {
-        const shape = this._createRoundedRectShape(width, height, radius);
-        const geometry = new THREE.ShapeGeometry(shape);
+    _createSquircleMesh(width, height, power, cornerRadiusRatio, color) {
+        const shape = this._createSquircleBarShape(width, height, power, cornerRadiusRatio);
+        const geometry = new THREE.ShapeGeometry(shape, 48);
         const material = new THREE.MeshBasicMaterial({ color });
         return new THREE.Mesh(geometry, material);
     }
@@ -68,9 +120,27 @@ export class HealthBar extends THREE.Group {
 
     _updateHealthBar() {
         const healthRatio = this.health / this.maxHealth;
-        // Scale the foreground mesh in X, and shift it so the left edge stays fixed
-        this.fgMesh.scale.x = healthRatio;
-        this.fgMesh.position.x = -(this.width * (1 - healthRatio)) / 2;
+        const fgWidth = this.width * healthRatio;
+
+        if (fgWidth <= 0.0001) {
+            this.fgMesh.visible = false;
+            return;
+        }
+
+        this.fgMesh.visible = true;
+        this.fgMesh.geometry.dispose();
+        this.fgMesh.geometry = new THREE.ShapeGeometry(
+            this._createSquircleBarShape(
+                fgWidth,
+                this.height,
+                this.squirclePower,
+                this.cornerRadiusRatio
+            ),
+            48
+        );
+
+        // Keep left side fixed while width changes by moving mesh center.
+        this.fgMesh.position.x = -(this.width / 2) + (fgWidth / 2);
     }
 
     // Call this in your render loop to face the camera

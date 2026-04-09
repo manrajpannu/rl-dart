@@ -2,6 +2,16 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { HealthBar } from './HealthBar/HealthBar.js';
 
+/**
+ * Ball entity used as a target in gameplay.
+ *
+ * Responsibilities:
+ * - Maintain hitbox, health, and alive state
+ * - Handle ray intersection and hit timing
+ * - Apply movement strategy updates
+ * - Drive visual helpers such as crosshair and health bar
+ * - Trigger hit and kill sound effects
+ */
 export class Ball extends THREE.Group {
 
 
@@ -9,6 +19,14 @@ export class Ball extends THREE.Group {
     negative = new THREE.Color(0x000000);
 
 
+    /**
+     * @param {THREE.Vector3} position Initial world position.
+     * @param {number} radius Ball collision radius.
+     * @param {{ update?: (ball: Ball, dt: number) => void, reset?: (ball: Ball) => void } | null} movement
+     * Movement strategy object.
+     * @param {{ maxHealth?: number, health?: number, damageAmount?: number, dps?: number } | null} health
+     * Optional health config.
+     */
     constructor(position = new THREE.Vector3(0, 3, -3), radius = 0.9125, movement = null, health = null) {
         super();
 
@@ -29,7 +47,7 @@ export class Ball extends THREE.Group {
         this.health = hasHealth && health.health !== undefined ? health.health : 5;
         this.damageAmount = hasHealth && health.damageAmount !== undefined ? health.damageAmount : 1;
         this.dps = hasHealth && health.dps !== undefined ? health.dps : 5;
-        this.healthBar = new HealthBar(1, 0.1, 0.05, this.maxHealth, this.health);
+        this.healthBar = new HealthBar(1, 0.085, 0.05, this.maxHealth, this.health);
         this.healthBar.position.set(0, radius + 0.5, 0);
         this.add(this.healthBar);
 
@@ -54,9 +72,19 @@ export class Ball extends THREE.Group {
         this.hitAccumulator = 0;
 
         // Outer transparent indicatorSphere for visual effect
-        const geometry = new THREE.SphereGeometry(radius+0.1, 64, 64);
-        const material = new THREE.MeshBasicMaterial({ color: 0xff5555, transparent: true, opacity: 0.1 });
+        const geometry = new THREE.SphereGeometry(radius+0.01, 64, 64);
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xff5555,
+            transparent: true,
+            opacity: 0.05,
+            toneMapped: false,
+            fog: false,
+            depthWrite: false,
+        });
         this.indicatorSphere = new THREE.Mesh(geometry, material);
+        this.indicatorSphere.castShadow = false;
+        this.indicatorSphere.receiveShadow = false;
+        this.indicatorSphere.renderOrder = 10;
         this.add(this.indicatorSphere);
 
         // ball model
@@ -68,7 +96,7 @@ export class Ball extends THREE.Group {
         //     this.add(this.ball);    
         // });
 
-        // Use a simple white sphere as the ball
+        // Use a simple blue sphere as the ball
         const ballGeometry = new THREE.SphereGeometry(this.radius, 32, 32);
         const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x0049ef4, roughness: 1, metalness: 0.0, opacity: 1 });
         this.ball = new THREE.Mesh(ballGeometry, ballMaterial);
@@ -86,7 +114,7 @@ export class Ball extends THREE.Group {
         // crosshair
         const dotSize = 0.06 * this.radius;
         const dotGeom = new THREE.SphereGeometry(dotSize, 16, 16);
-        const dotMat =  new THREE.MeshStandardMaterial({ color: 0xff2222 });
+        const dotMat =  new THREE.MeshBasicMaterial({ color: 0xff2222 });
         const dot =     new THREE.Mesh(dotGeom, dotMat);
         this.crosshair = dot;
         this.add(this.crosshair);
@@ -94,7 +122,16 @@ export class Ball extends THREE.Group {
 
     }
     
-    update(ray, boost, dt, collisionContext = null) {
+    /**
+     * Per-frame update.
+     *
+     * @param {THREE.Ray} ray Current aiming ray.
+     * @param {boolean} boost Whether damage input is currently active.
+     * @param {number} dt Delta time in seconds.
+     * @param {THREE.Vector3|null} collisionContext Optional car position for exclusion radius.
+     * @param {boolean} canBeHit If false, this ball is ignored by hit logic for this frame.
+     */
+    update(ray, boost, dt, collisionContext = null, canBeHit = true) {
         if (this.movement) {
             this.movement.update(this, dt);
         }
@@ -110,11 +147,11 @@ export class Ball extends THREE.Group {
             }
         }
 
-        const intersection = this.findIntersection(ray, this.hitBox);
+        const intersection = canBeHit ? this.findIntersection(ray, this.hitBox) : null;
         this.updateCrosshairLocation(intersection);
         this.updateCrosshairSize(ray);
         
-        if (intersection && boost) {
+        if (canBeHit && intersection && boost) {
             this.intersecting = true;
             this.targetTimer += dt;
             if (this.hitAccumulator > 0) {
@@ -132,7 +169,7 @@ export class Ball extends THREE.Group {
                 this.hitAccumulator = 1 / this.dps;
             }
             this.positiveColor();
-        } else if (intersection && !boost) {
+        } else if (canBeHit && intersection && !boost) {
             this.positiveColor();
         } else {
             this.intersecting = false;
@@ -146,6 +183,14 @@ export class Ball extends THREE.Group {
 
     }
 
+    /**
+     * Computes world-space intersection point between the ray and this ball sphere.
+     * Returns null if there is no forward intersection.
+     *
+     * @param {THREE.Ray} ray
+     * @param {THREE.Sphere} sphere
+     * @returns {THREE.Vector3|null}
+     */
     findIntersection(ray, sphere) {
         let intersection = null;
 
@@ -198,6 +243,10 @@ export class Ball extends THREE.Group {
         return this.justHit;
     }
     
+    /**
+     * Returns true exactly once when this ball transitions to killed state.
+     * @returns {boolean|undefined}
+     */
     isKilled () {
         if (this.healthBarEnabled && this.alive && this.justHit && this.health <= 0) {
             this.alive = false;
@@ -302,6 +351,9 @@ export class Ball extends THREE.Group {
         this.healthBar.setHealth(this.health);
     }
     
+    /**
+     * Resets state after a kill/respawn cycle.
+     */
     respawn() {
         this.alive = true;
         this.health = this.maxHealth;

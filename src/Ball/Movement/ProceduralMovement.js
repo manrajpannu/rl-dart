@@ -3,8 +3,8 @@ import * as THREE from "three";
 export class ProceduralMovement {
   constructor({
         bounds = 20,
-        speed = 3,
-        turnRate = 1
+        speed = 1,
+        turnRate = 2
     } = {}) {
     this.bounds = bounds;
     this.speed = speed;

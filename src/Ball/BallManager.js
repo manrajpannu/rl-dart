@@ -2,6 +2,16 @@ import * as THREE from 'three';
 import { Ball } from './Ball';
 import { CollisionSystem } from './CollisionSystem';
 
+/**
+ * Manages all Ball instances in the scene.
+ *
+ * Responsibilities:
+ * - Own the active ball collection
+ * - Update balls each frame
+ * - Emit gameplay events (hit/killed)
+ * - Resolve ball-to-ball collisions
+ * - Track targeting helpers (closest and first ray-intersected ball)
+ */
 export class BallManager extends THREE.Group {
     constructor() {
         super();
@@ -11,23 +21,45 @@ export class BallManager extends THREE.Group {
         this.listeners = {};
     }
     
+    /**
+     * Subscribe to manager events.
+     * @param {string} event Event name.
+     * @param {(data?: any) => void} callback Event handler.
+     */
     on(event, callback) {
         if (!this.listeners[event]) this.listeners[event] = [];
         this.listeners[event].push(callback);
     }
     
+    /**
+     * Unsubscribe from manager events.
+     * @param {string} event Event name.
+     * @param {(data?: any) => void} callback Event handler to remove.
+     */
     off(event, callback) {
         if (this.listeners[event]) {
             this.listeners[event] = this.listeners[event].filter(cb => cb !== callback);
         }
     }
     
+    /**
+     * Emit an event to all listeners.
+     * @param {string} event Event name.
+     * @param {any} data Optional payload.
+     */
     emit(event, data) {
         if (this.listeners[event]) {
             this.listeners[event].forEach(cb => cb(data));
         }
     }
 
+    /**
+     * Returns the ball most aligned with the ray direction.
+     * Alignment is measured with a direction dot product.
+     *
+     * @param {THREE.Ray} ray
+     * @returns {Ball|null}
+     */
     findClosestBall(ray) {
         let closestBall = null;
         let highestDot = -Infinity;
@@ -44,6 +76,34 @@ export class BallManager extends THREE.Group {
             }
         });
         return closestBall;
+    }
+
+    /**
+     * Returns the first ball hit by the ray in world space.
+     * This is based on the nearest valid ray-sphere intersection distance.
+     *
+     * @param {THREE.Ray} ray
+     * @returns {Ball|null}
+     */
+    findFirstIntersectedBall(ray) {
+        if (!ray || !this.balls || this.balls.length === 0) return null;
+
+        let firstBall = null;
+        let closestDistance = Infinity;
+
+        this.balls.forEach(ball => {
+            if (!ball || !ball.hitBox) return;
+            const intersection = ball.findIntersection(ray, ball.hitBox);
+            if (!intersection) return;
+
+            const distance = intersection.distanceTo(ray.origin);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                firstBall = ball;
+            }
+        });
+
+        return firstBall;
     }
     
     isIntersecting() {
@@ -129,8 +189,11 @@ export class BallManager extends THREE.Group {
     update(forwardVector, boostHeld, dt) {
         let hit = false;
         let killedBall = null;
+
+        const firstIntersectedBall = this.findFirstIntersectedBall(forwardVector);
+
         this.balls.forEach(ball => {
-            ball.update(forwardVector, boostHeld, dt);
+            ball.update(forwardVector, boostHeld, dt, null, ball === firstIntersectedBall);
             if (ball.isHit()) hit = true;
             if (!killedBall && ball.isKilled()) killedBall = ball;
         });
