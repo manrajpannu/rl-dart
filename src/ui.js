@@ -1,8 +1,9 @@
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
 import {physics} from './PhysicsConfig.js'
 import { CAR_MODELS } from './Car/CarModel.js';
-import { Car } from './Car/Car.js';
+import { Car } from './Car/Car';
 import { Ball } from './Ball/Ball.js';
+import { BOOST_TYPES } from './Car/boost/BoostFactory.js';
 
 /**
  * Restores previously saved GUI preset (if present) from localStorage.
@@ -39,8 +40,9 @@ function youtuberMode(mode, map, renderer)
  * @param {Ball | undefined} ball
  * @param {import('./Map').Map} map
  * @param {import('three').WebGLRenderer} renderer
+ * @param {import('./Engine').Engine} [engine]
  */
-export function createUI(car, controller,  ball, map, renderer) {
+export function createUI(car, controller,  ball, map, renderer, engine) {
 
     const gui = new GUI();
 
@@ -74,6 +76,9 @@ export function createUI(car, controller,  ball, map, renderer) {
     const carFolder = gui.addFolder('Car');
 
     carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.switchCarModel(modelKey)));
+    carFolder.add(car, 'boostType', Object.keys(BOOST_TYPES)).name('Boost Type').onChange((type) => {
+        car.setBoostType(type);
+    });
     // Visuals Folder
     // const visualsFolder = carFolder.addFolder('Visuals');
     // visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => car.updateVisibility());

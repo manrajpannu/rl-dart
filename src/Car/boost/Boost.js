@@ -81,7 +81,7 @@ export class Boost extends THREE.Group {
       for (let i = 0; i < this._poolSize; i++) {
         const mesh = new THREE.Mesh(this._particleGeometry, this._materialTemplate.clone());
         mesh.visible = false;
-        mesh.material.color.setHex(this.boostColour);
+        mesh.material.color.set(this.boostColour);
         mesh.userData.velocity = new THREE.Vector3();
         mesh.userData.life = 0;
         mesh.userData.totalLife = 0;
@@ -157,7 +157,7 @@ export class Boost extends THREE.Group {
       particle.userData.totalLife = life;
       particle.userData.baseOpacity = 0.12 + Math.random() * 0.1;
       particle.userData.baseSize = 0.04 + Math.random() * 0.01;
-      particle.material.color.setHex(this.boostColour);
+      particle.material.color.set(this.boostColour);
     }
     
     /**

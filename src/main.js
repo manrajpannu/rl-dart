@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import Stats from 'three/examples/jsm/libs/stats.module.js'
-import { Engine } from './Engine.js';
+import { Engine } from './Engine';
 import { physics } from './PhysicsConfig.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
@@ -46,6 +46,8 @@ scene.add(engine);
 let lastTime = performance.now();
 // Simulation updates run at a fixed cadence independent of render framerate.
 const FIXED_DT = 1.0 / 136.0; 
+const MAX_FRAME_TIME = 0.05;
+const MAX_STEPS_PER_FRAME = 8;
 let accumulator = 0;
 
 
@@ -62,13 +64,22 @@ function animate() {
   requestAnimationFrame(animate);
   const currentTime = performance.now();
   let frameTime = ((currentTime - lastTime) / 1000) * physics.world.gameSpeed;
+  // Cap frame time so slow frames do not cause massive simulation catch-up bursts.
+  frameTime = Math.min(frameTime, MAX_FRAME_TIME);
   lastTime = currentTime;
 
   accumulator += frameTime;
+  let steps = 0;
 
-  while (accumulator >= FIXED_DT) {
+  while (accumulator >= FIXED_DT && steps < MAX_STEPS_PER_FRAME) {
     engine.update(FIXED_DT);
     accumulator -= FIXED_DT;
+    steps += 1;
+  }
+
+  if (steps === MAX_STEPS_PER_FRAME && accumulator >= FIXED_DT) {
+    // Drop stale backlog to recover smoothly instead of entering spiral-of-death.
+    accumulator = 0;
   }
 
   

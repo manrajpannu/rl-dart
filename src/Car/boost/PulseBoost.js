@@ -10,7 +10,7 @@ export class PulseBoost extends Boost {
    */
   constructor(scene, options = {}) {
     super(scene, {
-      boostColour: '0xffffff',
+      boostColour: 0xffffff,
       particlesPerSecond: 500,
       particleLife: 1.9,
       particleSpread: 0.5,
