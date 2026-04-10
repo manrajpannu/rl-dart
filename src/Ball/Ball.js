@@ -24,7 +24,7 @@ export class Ball extends THREE.Group {
      * @param {number} radius Ball collision radius.
      * @param {{ update?: (ball: Ball, dt: number) => void, reset?: (ball: Ball) => void } | null} movement
      * Movement strategy object.
-     * @param {{ maxHealth?: number, health?: number, damageAmount?: number, dps?: number } | null} health
+    * @param {{ maxHealth?: number, health?: number, damageAmount?: number, dps?: number, holdSliderEnabled?: boolean, sliderDrainRate?: number, holdDurationSeconds?: number } | null} health
      * Optional health config.
      */
     constructor(position = new THREE.Vector3(0, 3, -3), radius = 0.9125, movement = null, health = null) {
@@ -43,10 +43,17 @@ export class Ball extends THREE.Group {
         // health object: { maxHealth, health, damageAmount, dps }
         const hasHealth = health && typeof health === 'object';
         this.healthBarEnabled = !!hasHealth;
-        this.maxHealth = hasHealth && health.maxHealth !== undefined ? health.maxHealth : 5;
-        this.health = hasHealth && health.health !== undefined ? health.health : 5;
+        this.holdSliderEnabled = Boolean(hasHealth && health.holdSliderEnabled);
+        const defaultMaxHealth = this.holdSliderEnabled ? 100 : 5;
+        this.maxHealth = hasHealth && health.maxHealth !== undefined ? health.maxHealth : defaultMaxHealth;
+        this.health = hasHealth && health.health !== undefined ? health.health : this.maxHealth;
         this.damageAmount = hasHealth && health.damageAmount !== undefined ? health.damageAmount : 1;
         this.dps = hasHealth && health.dps !== undefined ? health.dps : 5;
+        this.sliderDrainRate = hasHealth && health.sliderDrainRate !== undefined ? health.sliderDrainRate : 40;
+        const derivedHoldSeconds = this.maxHealth / Math.max(1e-6, this.sliderDrainRate);
+        this.holdDurationSeconds = hasHealth && health.holdDurationSeconds !== undefined
+            ? Math.max(0.05, health.holdDurationSeconds)
+            : Math.max(0.05, derivedHoldSeconds);
         this.healthBar = new HealthBar(1, 0.085, 0.05, this.maxHealth, this.health);
         this.healthBar.position.set(0, radius + 0.5, 0);
         this.add(this.healthBar);
@@ -150,6 +157,53 @@ export class Ball extends THREE.Group {
         this.updateCrosshairLocation(intersection);
         this.updateCrosshairSize(ray);
         this.updateHealthBarVisibility(!!intersection);
+
+        if (this.holdSliderEnabled) {
+            if (canBeHit && intersection && boost) {
+                this.intersecting = true;
+                this.targetTimer += dt;
+
+                if (this.hitAccumulator > 0) {
+                    this.hitAccumulator -= dt;
+                }
+                if (this.hitAccumulator <= 0) {
+                    const hitSound = this._hitSounds[this._hitSoundIndex];
+                    hitSound.currentTime = 0;
+                    hitSound.play();
+                    this._hitSoundIndex = (this._hitSoundIndex + 1) % this._hitSounds.length;
+                    this.hitAccumulator = 1 / this.dps;
+                }
+
+                const progress = Math.min(1, this.targetTimer / this.holdDurationSeconds);
+                const previous = this.health;
+                this.health = this.maxHealth * (1 - progress);
+                if (this.health !== previous) {
+                    this.healthBar.setHealth(this.health);
+                }
+                this.justHit = false;
+                this.positiveColor();
+
+                if (progress >= 1 && this.alive) {
+                    this.justHit = true;
+                }
+            } else {
+                this.intersecting = false;
+                this.targetTimer = 0;
+                this.hitAccumulator = 0;
+                if (this.health < this.maxHealth) {
+                    this.health = this.maxHealth;
+                    this.healthBar.setHealth(this.health);
+                }
+                this.justHit = false;
+                if (intersection) {
+                    this.positiveColor();
+                } else {
+                    this.negativeColor();
+                }
+            }
+
+            return;
+        }
         
         if (canBeHit && intersection && boost) {
             this.intersecting = true;

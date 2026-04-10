@@ -175,6 +175,117 @@ body {
   border: 1px solid rgba(255,255,255,0.8);
 }
 
+.freeplay-overlay {
+  position: fixed;
+  top: calc(var(--header-height) + 10px);
+  left: 10px;
+  z-index: 10020;
+  pointer-events: none;
+}
+
+.freeplay-panel {
+  position: relative;
+  width: min(290px, calc(100vw - 20px));
+  padding: 12px 14px 12px 14px;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(9, 11, 14, 0.92), rgba(11, 14, 18, 0.78)),
+    radial-gradient(circle at top left, rgba(73, 174, 255, 0.12), transparent 42%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 14px 30px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.freeplay-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+.freeplay-panel__accent {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, rgba(98, 218, 255, 0.95), rgba(255, 255, 255, 0.15));
+  box-shadow: 0 0 18px rgba(98, 218, 255, 0.45);
+}
+
+.freeplay-panel__header,
+.freeplay-stats,
+.freeplay-stat {
+  position: relative;
+  z-index: 1;
+}
+
+.freeplay-panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-left: 4px;
+}
+
+.freeplay-panel__title {
+  font-family: 'Segoe UI', 'Manrope', sans-serif;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f4f6f8;
+}
+
+.freeplay-panel__subtitle {
+  font-family: 'Segoe UI', 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 248, 0.62);
+}
+
+.freeplay-stats {
+  display: grid;
+  gap: 6px;
+}
+
+.freeplay-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 6px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.freeplay-stat__label {
+  font-family: 'Segoe UI', 'Manrope', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 248, 0.7);
+}
+
+.freeplay-stat__value {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f7fbff;
+  text-shadow: 0 0 8px rgba(98, 218, 255, 0.12);
+}
+
 
 
 #intro-modal {

@@ -200,13 +200,14 @@ export class BallManager extends THREE.Group {
         // Core targeting rule: only the first ray intersection can receive
         // hit/damage processing during this frame.
         const firstIntersectedBall = this.findFirstIntersectedBall(forwardVector);
+        this.lastFirstIntersectedBall = firstIntersectedBall;
 
         this.balls.forEach(ball => {
             ball.update(forwardVector, boostHeld, dt, null, ball === firstIntersectedBall);
             if (ball.isHit()) hit = true;
             if (!killedBall && ball.isKilled()) killedBall = ball;
         });
-        if (hit) this.emit('hit');
+        if (hit) this.emit('hit', firstIntersectedBall);
         if (killedBall) {
             this.respawnBall(killedBall);
             this.emit('killed', killedBall);
@@ -243,6 +244,8 @@ export class BallManager extends THREE.Group {
             }
             this.balls.length = 0;
         }
+
+        return this;
     }
 
     /**

@@ -20,8 +20,8 @@ interface ModeLike {
   timeLimit?: number;
   start: (ballManager: BallManager) => void | Promise<void>;
   stop: () => void;
-  update: (dt: number) => void;
-  onHit: () => void;
+  update: (dt: number, context?: { boostHeld?: boolean; ballManager?: BallManager }) => void;
+  onHit: (ball?: Ball) => void;
   onKill: (ball?: Ball) => void;
 }
 
@@ -205,30 +205,30 @@ export class Engine extends THREE.Group {
       this.add(rimLight);
     }
 
-    this.car = new Car(this as unknown as THREE.Object3D);
-    this.add(this.car as unknown as THREE.Object3D);
+    this.car = new Car(this);
+    this.add(this.car);
 
     this.BallManager = new BallManager();
-    this.add(this.BallManager as unknown as THREE.Object3D);
+    this.add(this.BallManager);
 
     this.map = new GameMap();
     this.map.gen();
-    (this.map as any).position.y = -15;
-    this.add(this.map as unknown as THREE.Object3D);
+    this.map.position.y = -15;
+    this.add(this.map);
 
     this.controller = new Controller();
 
     this.currentMode = new FreeplayMode({
-      numBalls: 6,
-      health: 3,
-      movement: FlowMovement,
-      size: 1,
+      numBalls: 2,
+      health: 5,
+      movement: null,
+      size: 4,
       boundary: 20,
     });
     this.currentMode.start(this.BallManager);
 
-    this._onHit = () => {
-      this.currentMode.onHit();
+    this._onHit = (ball?: Ball) => {
+      this.currentMode.onHit(ball);
       this._emitModeState();
     };
 
@@ -280,8 +280,8 @@ export class Engine extends THREE.Group {
       this.currentClosestBall = this.BallManager.getClosestBall() ?? null;
     }
 
-    this.car.updateCamera((this.currentClosestBall ? this.currentClosestBall.position : null) as any, ballCam, dt);
-    this.currentMode.update(dt);
+    this.car.updateCamera(this.currentClosestBall ? this.currentClosestBall.position : null, ballCam, dt);
+    this.currentMode.update(dt, { boostHeld, ballManager: this.BallManager });
 
     // drawDot(yaw, -pitch);
     // drawDeadzone(yaw, -pitch);
@@ -293,6 +293,10 @@ export class Engine extends THREE.Group {
   }
 
   setMode(newMode: ModeLike): void {
+    if (this.currentMode && typeof this.currentMode.stop === 'function') {
+      this.currentMode.stop();
+    }
+
     if (this.car?.Boost && typeof this.car.Boost.reset === 'function') {
       this.car.Boost.reset();
     }
@@ -302,8 +306,8 @@ export class Engine extends THREE.Group {
 
     this.currentMode = newMode;
 
-    this._onHit = () => {
-      this.currentMode.onHit();
+    this._onHit = (ball?: Ball) => {
+      this.currentMode.onHit(ball);
       this._emitModeState();
     };
     this._onKill = (ball?: Ball) => {
