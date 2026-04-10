@@ -286,6 +286,63 @@ body {
   text-shadow: 0 0 8px rgba(98, 218, 255, 0.12);
 }
 
+.challenge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10030;
+  pointer-events: none;
+}
+
+.challenge-timer {
+  position: absolute;
+  top: calc(var(--header-height) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.challenge-panel {
+  width: min(200px, calc(100vw - 20px));
+}
+
+.challenge-panel .freeplay-panel__accent {
+  background: linear-gradient(180deg, rgba(255, 198, 98, 0.95), rgba(255, 255, 255, 0.15));
+  box-shadow: 0 0 18px rgba(255, 198, 98, 0.45);
+}
+
+.challenge-panel__header {
+  margin-bottom: 8px;
+}
+
+.challenge-timer__stat {
+  padding: 7px 8px;
+}
+
+.challenge-overlay__center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.challenge-panel--countdown {
+  width: min(225px, calc(100vw - 20px));
+  padding-bottom: 14px;
+}
+
+.challenge-countdown-value {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: clamp(36px, 8vw, 92px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f7fbff;
+  text-shadow: 0 0 12px rgba(255, 198, 98, 0.25);
+}
+
 
 
 #intro-modal {

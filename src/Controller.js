@@ -166,80 +166,96 @@ export class Controller {
      *
      * @returns {{ pitch: number, yaw: number, roll: number, boostHeld: boolean, ballCam: boolean }}
      */
-    handleController() {
-      let pitch = 0, yaw = 0, roll = 0;
-      let boostHeld = false;
-      if (this.gamepadIndex !== null) {
-        const gp = navigator.getGamepads()[this.gamepadIndex];
-        if (gp && gp.connected) {
-    
-          let x = gp.axes[0];
-          let y = gp.axes[1];
-    
-          switch (this.controllerDeadzoneType) {
-    
-            case 'circle': {
-              ({x, y} = circleDeadzone(x, y, this.controllerDeadzone));
-              x *= this.controllerSensitivity;
-              y *= this.controllerSensitivity;
-              const hyp = Math.hypot(x, y);
-              if (hyp > 1) {
-                x /= hyp;
-                y /= hyp;
-              }
-              break;
-            }
-    
-            case 'cross': {
-              x = crossDeadzone(x, this.controllerDeadzone);
-              y = crossDeadzone(y, this.controllerDeadzone);
-              x *= this.controllerSensitivity;
-              y *= this.controllerSensitivity;
-              const hyp = Math.hypot(x, y);
-              if (hyp > 1) {
-                x /= hyp;
-                y /= hyp;
-              }
-              break;
-            }
-    
-            case 'square': {
-              x = crossDeadzone(gp.axes[0], this.controllerDeadzone);
-              y = crossDeadzone(gp.axes[1], this.controllerDeadzone);
-              
-              const sq = circleToSquare(x * this.controllerSensitivity, y * this.controllerSensitivity);
-    
-              x = sq.x
-              y = sq.y
-              break;
-            }
-    
-            default: {
-              x = crossDeadzone(x, this.controllerDeadzone);
-              y = crossDeadzone(y, this.controllerDeadzone);
-              break;
-            }
-          }
-    
-          pitch = THREE.MathUtils.clamp(y, -1, 1);
-          yaw   = -THREE.MathUtils.clamp(x, -1, 1);
-    
-          const leftPressed = gp.buttons[this.airRollLeftButton]?.pressed;
-          const rightPressed = gp.buttons[this.airRollRightButton]?.pressed;
-          const freePressed = gp.buttons[this.airRollFreeButton]?.pressed;
-          boostHeld = gp.buttons[this.boostButton]?.pressed;
-          
-          if (freePressed) {
-            roll = -yaw;
-            yaw = 0;
-          } else if (leftPressed) {
-            roll = -1;
-          } else if (rightPressed) {
-            roll = 1;
-          }
+    _clampStick(x, y) {
+      const hyp = Math.hypot(x, y);
+      if (hyp > 1) {
+        return { x: x / hyp, y: y / hyp };
+      }
+      return { x, y };
+    }
+
+    _applyStickDeadzone(gp) {
+      let x = gp.axes[0];
+      let y = gp.axes[1];
+
+      switch (this.controllerDeadzoneType) {
+        case 'circle': {
+          ({ x, y } = circleDeadzone(x, y, this.controllerDeadzone));
+          x *= this.controllerSensitivity;
+          y *= this.controllerSensitivity;
+          return this._clampStick(x, y);
+        }
+
+        case 'cross': {
+          x = crossDeadzone(x, this.controllerDeadzone);
+          y = crossDeadzone(y, this.controllerDeadzone);
+          x *= this.controllerSensitivity;
+          y *= this.controllerSensitivity;
+          return this._clampStick(x, y);
+        }
+
+        case 'square': {
+          x = crossDeadzone(gp.axes[0], this.controllerDeadzone);
+          y = crossDeadzone(gp.axes[1], this.controllerDeadzone);
+          return circleToSquare(x * this.controllerSensitivity, y * this.controllerSensitivity);
+        }
+
+        default: {
+          x = crossDeadzone(x, this.controllerDeadzone);
+          y = crossDeadzone(y, this.controllerDeadzone);
+          return { x, y };
         }
       }
-    
-      return {pitch: (this.input.pitchUp - this.input.pitchDown) || pitch, yaw: (this.input.yawRight - this.input.yawLeft) || yaw, roll: (this.input.rollRight - this.input.rollLeft) || roll, boostHeld: this.leftMouse || boostHeld, ballCam: this.ballCam };
+    }
+
+    _readGamepadFrame() {
+      let pitch = 0;
+      let yaw = 0;
+      let roll = 0;
+      let boostHeld = false;
+
+      if (this.gamepadIndex === null) {
+        return { pitch, yaw, roll, boostHeld };
+      }
+
+      const gp = navigator.getGamepads()[this.gamepadIndex];
+      if (!gp || !gp.connected) {
+        return { pitch, yaw, roll, boostHeld };
+      }
+
+      const { x, y } = this._applyStickDeadzone(gp);
+      pitch = THREE.MathUtils.clamp(y, -1, 1);
+      yaw = -THREE.MathUtils.clamp(x, -1, 1);
+
+      const leftPressed = gp.buttons[this.airRollLeftButton]?.pressed;
+      const rightPressed = gp.buttons[this.airRollRightButton]?.pressed;
+      const freePressed = gp.buttons[this.airRollFreeButton]?.pressed;
+      boostHeld = gp.buttons[this.boostButton]?.pressed;
+
+      if (freePressed) {
+        roll = -yaw;
+        yaw = 0;
+      } else if (leftPressed) {
+        roll = -1;
+      } else if (rightPressed) {
+        roll = 1;
+      }
+
+      return { pitch, yaw, roll, boostHeld };
+    }
+
+    _applyKeyboardOverrides(frame) {
+      return {
+        pitch: (this.input.pitchUp - this.input.pitchDown) || frame.pitch,
+        yaw: (this.input.yawRight - this.input.yawLeft) || frame.yaw,
+        roll: (this.input.rollRight - this.input.rollLeft) || frame.roll,
+        boostHeld: this.leftMouse || frame.boostHeld,
+        ballCam: this.ballCam,
+      };
+    }
+
+    handleController() {
+      const gamepadFrame = this._readGamepadFrame();
+      return this._applyKeyboardOverrides(gamepadFrame);
     }
 }

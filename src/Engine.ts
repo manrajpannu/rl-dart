@@ -18,8 +18,9 @@ interface ModeLike {
   score?: number;
   timeElapsed?: number;
   timeLimit?: number;
-  start: (ballManager: BallManager) => void | Promise<void>;
+  start: (ballManager: BallManager, context?: { car?: Car }) => void | Promise<void>;
   stop: () => void;
+  shouldPauseGameplay?: () => boolean;
   update: (dt: number, context?: { boostHeld?: boolean; ballManager?: BallManager }) => void;
   onHit: (ball?: Ball) => void;
   onKill: (ball?: Ball) => void;
@@ -181,27 +182,29 @@ export class Engine extends THREE.Group {
       const ambientLight = new THREE.AmbientLight(0x000000);
       this.add(ambientLight);
 
-      const keyLight = new THREE.DirectionalLight(0xffffff, 1.25);
-      (keyLight as any).position.set(0, 200, 0);
-      (keyLight as any).castShadow = true;
-      (keyLight as any).shadow.mapSize.set(2048, 2048);
-      (keyLight as any).shadow.camera.near = 1;
-      (keyLight as any).shadow.camera.far = 400;
-      (keyLight as any).shadow.camera.left = -120;
-      (keyLight as any).shadow.camera.right = 120;
-      (keyLight as any).shadow.camera.top = 120;
-      (keyLight as any).shadow.camera.bottom = -120;
+      const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+      keyLight.position.set(0, 200, 0);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.set(2048, 2048);
+      keyLight.shadow.camera.near = 1;
+      keyLight.shadow.camera.far = 400;
+      if (keyLight.shadow.camera instanceof THREE.OrthographicCamera) {
+        keyLight.shadow.camera.left = -120;
+        keyLight.shadow.camera.right = 120;
+        keyLight.shadow.camera.top = 120;
+        keyLight.shadow.camera.bottom = -120;
+      }
       // Normal bias is important on curved meshes to prevent shadow acne/banding.
-      (keyLight as any).shadow.bias = -0.00002;
-      (keyLight as any).shadow.normalBias = 0.02;
+      keyLight.shadow.bias = -0.00002;
+      keyLight.shadow.normalBias = 0.02;
       this.add(keyLight);
 
       const fillLight = new THREE.DirectionalLight(0xffffff, 0.95);
-      (fillLight as any).position.set(100, 200, 100);
+      fillLight.position.set(100, 200, 100);
       this.add(fillLight);
 
-      const rimLight = new THREE.DirectionalLight(0xffffff, 0.7);
-      (rimLight as any).position.set(-100, -200, -100);
+      const rimLight = new THREE.DirectionalLight(0xffffff, 1.7);
+      rimLight.position.set(-100, -200, -100);
       this.add(rimLight);
     }
 
@@ -218,14 +221,41 @@ export class Engine extends THREE.Group {
 
     this.controller = new Controller();
 
-    this.currentMode = new FreeplayMode({
-      numBalls: 2,
-      health: 5,
-      movement: null,
-      size: 4,
+    // 5_targets_small
+    // this.currentMode = new ChallengeMode({
+    //   size: 1,
+    //   numBalls: 5,
+    //   holdSliderEnabled: true,
+    //   holdSliderSeconds: 0.5,
+    //   movement: null,
+    //   colors: ['#049ef4'],
+    //   boundary: 20,
+    // });
+
+    // 5_targets_big
+    // this.currentMode = new ChallengeMode({
+    //   size: 2,
+    //   numBalls: 5,
+    //   holdSliderEnabled: true,
+    //   holdSliderSeconds: 0.5,
+    //   movement: null,
+    //   colors: ['#049ef4'],
+    //   boundary: 20,
+    // });
+
+    // 5_targets_tracking_small
+    this.currentMode = new ChallengeMode({
+      size: 1,
+      numBalls: 5,
+      holdSliderEnabled: true,
+      holdSliderSeconds: 1,
+      movement: FlowMovement,
+      colors: ['#049ef4'],
       boundary: 20,
     });
-    this.currentMode.start(this.BallManager);
+
+
+    this.currentMode.start(this.BallManager, { car: this.car });
 
     this._onHit = (ball?: Ball) => {
       this.currentMode.onHit(ball);
@@ -266,6 +296,14 @@ export class Engine extends THREE.Group {
    */
   update(dt: number): void {
     const { yaw, pitch, roll, boostHeld, ballCam } = this.controller.handleController();
+
+    if (!this.currentMode.active && this.currentMode.shouldPauseGameplay?.()) {
+      this.car.setNeutralState();
+      this.currentMode.update(dt, { boostHeld: false, ballManager: this.BallManager });
+      this._emitModeState();
+      return;
+    }
+
     this.BallManager.update(this.car.getForwardVector(), boostHeld, dt);
     this.BallManager.updateHealthBar(this.car.getCamera());
 
@@ -321,7 +359,7 @@ export class Engine extends THREE.Group {
     this.BallManager.on('hit', this._onHit);
     this.BallManager.on('killed', this._onKill);
 
-    this.currentMode.start(this.BallManager);
+    this.currentMode.start(this.BallManager, { car: this.car });
     this.currentClosestBall = null;
     this._emitModeState();
   }
@@ -356,7 +394,7 @@ export class Engine extends THREE.Group {
   }
 
   restartCurrentMode(): void {
-    this.currentMode.start(this.BallManager);
+    this.currentMode.start(this.BallManager, { car: this.car });
     this.currentClosestBall = null;
     this._emitModeState();
   }
@@ -367,19 +405,19 @@ export class Engine extends THREE.Group {
   }
 
   getModeState(): ModeState {
-    const mode = this.currentMode as any;
-    const modeName = mode?.constructor?.name?.replace('Mode', '') || 'Unknown';
-    const isChallenge = modeName.toLowerCase().includes('challenge');
+    const isChallenge = this.currentMode instanceof ChallengeMode;
+    const isFreeplay = this.currentMode instanceof FreeplayMode;
+    const modeName = isChallenge ? 'Challenge' : isFreeplay ? 'Freeplay' : 'Unknown';
 
     return {
       modeName,
-      active: Boolean(mode?.active),
+      active: Boolean(this.currentMode?.active),
       isChallenge,
-      hits: Number(mode?.hits ?? 0),
-      kills: Number(mode?.kills ?? 0),
-      score: Number(mode?.score ?? 0),
-      timeLeft: isChallenge ? Number(mode?.timeElapsed ?? 0) : null,
-      timeLimit: isChallenge ? Number(mode?.timeLimit ?? 0) : null,
+      hits: Number(this.currentMode?.hits ?? 0),
+      kills: Number(this.currentMode?.kills ?? 0),
+      score: Number(this.currentMode?.score ?? 0),
+      timeLeft: isChallenge ? Number(this.currentMode?.timeElapsed ?? 0) : null,
+      timeLimit: isChallenge ? Number(this.currentMode?.timeLimit ?? 0) : null,
     };
   }
 
@@ -397,4 +435,3 @@ export class Engine extends THREE.Group {
     this._modeStateListeners.forEach(listener => listener(state));
   }
 }
-

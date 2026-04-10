@@ -8,53 +8,68 @@ import FreeplayMode from './Freeplay.js';
  * a visible timer that ends the run when time reaches zero.
  */
 class ChallengeMode extends FreeplayMode {
+    setCarVisuals(car) {
+        if (!car) return;
+        car.setForwardAxisVisible(false);
+        car.setHelperDonutVisible(false);
+        car.setAxisOfRotationVisible(false);
+    }
+
     static _ensureOverlay() {
-        if (!document.getElementById('challenge-overlay')) {
-            const overlay = document.createElement('div');
+        if (typeof document === 'undefined') return null;
+        let overlay = document.getElementById('challenge-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
             overlay.id = 'challenge-overlay';
-            overlay.style.position = 'fixed';
-            overlay.style.top = '0';
-            overlay.style.left = '0';
-            overlay.style.width = '100vw';
-            overlay.style.height = '100vh';
-            overlay.style.pointerEvents = 'none';
-            overlay.style.zIndex = '9999';
+            overlay.className = 'challenge-overlay';
             document.body.appendChild(overlay);
         }
+        return overlay;
     }
 
     static _showCountdown(text) {
-        ChallengeMode._ensureOverlay();
-        const overlay = document.getElementById('challenge-overlay');
-        overlay.innerHTML = `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:min(9vw, 120px);font-weight:900;letter-spacing:0.14em;text-transform:uppercase;color:#f5f7fa;font-family:'Arial Black','Impact',sans-serif;text-shadow:0 0 2px rgba(0,0,0,0.95),0 0 10px rgba(0,0,0,0.65),0 0 22px rgba(29,77,125,0.35);padding:0.08em 0.35em;border:1px solid rgba(255,255,255,0.18);background:rgba(10,12,14,0.28);backdrop-filter:blur(4px);border-radius:12px;">${text}</div>`;
+        const overlay = ChallengeMode._ensureOverlay();
+        if (!overlay) return;
+        overlay.innerHTML = `
+            <div class="challenge-overlay__center">
+                <div class="freeplay-panel challenge-panel challenge-panel--countdown">
+                    <div class="freeplay-panel__accent"></div>
+                    <div class="freeplay-panel__header challenge-panel__header">
+                        <div class="freeplay-panel__title">challenge</div>
+                        <div class="freeplay-panel__subtitle">countdown</div>
+                    </div>
+                    <div class="challenge-countdown-value">${text}</div>
+                </div>
+            </div>`;
     }
 
     static _showTimer(time) {
-        ChallengeMode._ensureOverlay();
-        const overlay = document.getElementById('challenge-overlay');
+        const overlay = ChallengeMode._ensureOverlay();
+        if (!overlay) return;
         let timerDiv = overlay.querySelector('.challenge-timer');
         if (!timerDiv) {
             timerDiv = document.createElement('div');
             timerDiv.className = 'challenge-timer';
-            timerDiv.style.position = 'absolute';
-            timerDiv.style.top = '2vw';
-            timerDiv.style.left = '50%';
-            timerDiv.style.transform = 'translateX(-50%)';
-            timerDiv.style.padding = '0.15em 0.6em';
-            timerDiv.style.borderRadius = '999px';
-            timerDiv.style.fontSize = 'clamp(18px, 2.1vw, 34px)';
-            timerDiv.style.fontWeight = '900';
-            timerDiv.style.letterSpacing = '0.12em';
-            timerDiv.style.textTransform = 'uppercase';
-            timerDiv.style.color = '#f7f9fc';
-            timerDiv.style.fontFamily = '"Arial Black", "Impact", sans-serif';
-            timerDiv.style.textShadow = '0 0 2px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.6), 0 0 16px rgba(29,77,125,0.28)';
-            timerDiv.style.background = 'linear-gradient(180deg, rgba(7,9,11,0.42), rgba(7,9,11,0.18))';
-            timerDiv.style.border = '1px solid rgba(255,255,255,0.12)';
-            timerDiv.style.backdropFilter = 'blur(4px)';
+            timerDiv.innerHTML = `
+                <div class="freeplay-panel challenge-panel challenge-panel--timer">
+                    <div class="freeplay-panel__accent"></div>
+                    <div class="freeplay-panel__header challenge-panel__header">
+                        <div class="freeplay-panel__title">challenge</div>
+                        <div class="freeplay-panel__subtitle">time left</div>
+                    </div>
+                    <div class="freeplay-stats">
+                        <div class="freeplay-stat challenge-timer__stat">
+                            <span class="freeplay-stat__label">timer</span>
+                            <span class="freeplay-stat__value" data-challenge-timer>0</span>
+                        </div>
+                    </div>
+                </div>`;
             overlay.appendChild(timerDiv);
         }
-        timerDiv.textContent = `${time}`;
+        const timerValue = timerDiv.querySelector('[data-challenge-timer]');
+        if (timerValue) {
+            timerValue.textContent = String(time);
+        }
     }
 
     static _clearOverlay() {
@@ -67,37 +82,40 @@ class ChallengeMode extends FreeplayMode {
      * @param {number} [options.health=3]
      * @param {any} [options.movement=null]
      * @param {number} [options.size=1.5]
+     * @param {boolean} [options.spawnOverlapping=true]
+    * @param {boolean} [options.showHud=false]
+     * @param {boolean} [options.holdSliderEnabled=false]
+     * @param {number} [options.holdSliderSeconds=2.5]
+     * @param {number} [options.missSampleRate=5]
+     * @param {Array<import('three').ColorRepresentation>} [options.colors=[]]
      * @param {number} [options.timeLimit=60]
+     * @param {number} [options.boundary=20]
      * @param {THREE.Vector3} [options.boundaryOrigin=new THREE.Vector3(0,0,0)]
      * @param {Array} [options.ballConfigs=[]]
      */
     constructor({
-        numBalls = 1,
-        health = 3,
-        movement = null,
-        size = 1.5,
-        spawnOverlapping = true,
         timeLimit = 60,
-        boundary = 20,
-        boundaryOrigin = new THREE.Vector3(0, 0, 0),
-        ballConfigs = [] // [{health, movement, size} ...]
+        showHud = false,
+        ...freeplayOptions
     } = {}) {
         super({
-            numBalls,
-            health,
-            movement,
-            size,
-            spawnOverlapping,
-            boundary,
-            boundaryOrigin,
-            ballConfigs,
+            spawnOverlapping: true,
+            showHud,
+            ...freeplayOptions,
         });
         this.timeElapsed = 0;
         this.timeLimit = timeLimit; // seconds
+        this._countdownActive = false;
+        this._car = null;
     }
 
-    update(dt) {
+    shouldPauseGameplay() {
+        return this._countdownActive && !this.active;
+    }
+
+    update(dt, context = {}) {
         if (!this.active) return;
+        super.update(dt, context);
         this.timeElapsed -= dt;
         if (typeof window !== 'undefined') {
             ChallengeMode._showTimer(Math.ceil(this.timeElapsed));
@@ -113,10 +131,15 @@ class ChallengeMode extends FreeplayMode {
      * Starts challenge state, then runs a short countdown before activation.
      * @param {import('../Ball/BallManager').BallManager} BallManager
      */
-    async start(BallManager) {
-        super.start(BallManager);
+    async start(BallManager, context = {}) {
+        super.start(BallManager, context);
+        this._car = context.car || null;
         this.timeElapsed = this.timeLimit;
         this.active = false;
+        this._countdownActive = true;
+        if (this._car && typeof this._car.setNeutralState === 'function') {
+            this._car.setNeutralState();
+        }
         // Countdown logic
         const countdown = async (n) => {
             for (let i = n; i > 0; i--) {
@@ -131,17 +154,21 @@ class ChallengeMode extends FreeplayMode {
             ChallengeMode._showCountdown('GO');
             setTimeout(() => ChallengeMode._clearOverlay(), 1000);
         }
+        this._countdownActive = false;
         this.active = true;
         console.log("Challenge started!");
     }
 
     stop() {
+        this._countdownActive = false;
+        this._car = null;
+        ChallengeMode._clearOverlay();
         super.stop();
         console.log(`Challenge Over! Score: ${this.score}, Hits: ${this.hits}, Kills: ${this.kills}`);
     }
 
-    onHit() {
-        super.onHit();
+    onHit(ball) {
+        super.onHit(ball);
         if (!this.active) return;
         console.log(`Hit! Total: ${this.hits}, Score: ${this.score}`);
     }

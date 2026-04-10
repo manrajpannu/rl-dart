@@ -19,18 +19,6 @@ function loadPreset(gui) {
 }
 
 
-function youtuberMode(mode, map, renderer)
-{
-    if (mode) {
-        renderer.setClearColor(0x00ff00);
-        map.visible = false;
-    } else {
-        renderer.setClearColor(0x444444);
-        map.visible = true;
-    }
-
-}
-
 
 /**
  * Builds the runtime tweak panel for world, controller, car, boost, and camera.

@@ -15,9 +15,11 @@ class FreeplayMode {
      * @param {any} [options.movement=null]
      * @param {number} [options.size=1.5]
      * @param {boolean} [options.spawnOverlapping=true]
+    * @param {boolean} [options.showHud=true]
     * @param {boolean} [options.holdSliderEnabled=false]
     * @param {number} [options.holdSliderSeconds=2.5]
     * @param {number} [options.missSampleRate=5]
+    * @param {Array<import('three').ColorRepresentation>} [options.colors=[]]
      * @param {number} [options.boundary=20]
      * @param {THREE.Vector3} [options.boundaryOrigin=new THREE.Vector3(0,0,0)]
      * @param {Array} [options.ballConfigs=[]]
@@ -28,9 +30,11 @@ class FreeplayMode {
         movement = null,
         size = 1.5,
         spawnOverlapping = false,
+        showHud = true,
         holdSliderEnabled = false,
         holdSliderSeconds = 2.5,
         missSampleRate = 5,
+        colors = [],
         boundary = 20,
         boundaryOrigin = new THREE.Vector3(0, 0, 0),
         ballConfigs = []
@@ -46,9 +50,11 @@ class FreeplayMode {
         this.defaultMovement = movement;
         this.defaultSize = size;
         this.spawnOverlapping = spawnOverlapping;
+        this.showHud = showHud;
         this.holdSliderEnabled = holdSliderEnabled;
         this.holdSliderSeconds = holdSliderSeconds;
         this.missSampleRate = missSampleRate;
+        this.colors = Array.isArray(colors) ? colors.slice() : [];
         this.boundary = boundary;
         this.boundaryOrigin = boundaryOrigin;
         this.maxSpawnAttempts = 40;
@@ -56,6 +62,7 @@ class FreeplayMode {
         this.cameraOrbitRadius = 5;
 
         this._ballManager = null;
+        this._car = null;
         this._hudRoot = null;
         this._hudFields = null;
         this._elapsedSeconds = 0;
@@ -146,6 +153,30 @@ class FreeplayMode {
         this._damagePossible += 1;
     }
 
+    _pickRandomColor(colors) {
+        if (!Array.isArray(colors) || colors.length === 0) return null;
+        const index = Math.floor(Math.random() * colors.length);
+        return colors[index];
+    }
+
+    _applyBallColor(ball, color) {
+        if (!ball || color === null || color === undefined) return;
+        if (typeof ball.setBallColor === 'function') {
+            ball.setBallColor(color);
+            return;
+        }
+        if (ball.ball?.material?.color?.set) {
+            ball.ball.material.color.set(color);
+        }
+    }
+
+    setCarVisuals(car) {
+        if (!car) return;
+        car.setForwardAxisVisible(true);
+        car.setHelperDonutVisible(true);
+        car.setAxisOfRotationVisible(true);
+    }
+
     _createRandomPosition(ballSize) {
         return this.boundaryOrigin.clone().add(new THREE.Vector3(
             (Math.random() - 0.5) * 2 * this.boundary,
@@ -181,6 +212,8 @@ class FreeplayMode {
             const ballSize = cfg.size !== undefined ? cfg.size : this.defaultSize;
             const ballHoldSliderEnabled = cfg.holdSliderEnabled !== undefined ? cfg.holdSliderEnabled : this.holdSliderEnabled;
             const ballHoldSliderSeconds = cfg.holdSliderSeconds !== undefined ? cfg.holdSliderSeconds : this.holdSliderSeconds;
+            const colorList = Array.isArray(cfg.colors) ? cfg.colors : this.colors;
+            const selectedColor = cfg.color !== undefined ? cfg.color : this._pickRandomColor(colorList);
 
             let pos = null;
             if (this.spawnOverlapping) {
@@ -213,6 +246,10 @@ class FreeplayMode {
                 holdDurationSeconds: ballHoldSliderSeconds,
             };
             const ball = BallManager.createBall(pos, ballSize, ballMovement, healthObj);
+            ball.userData = ball.userData || {};
+            ball.userData.freeplayFixedColor = cfg.color;
+            ball.userData.freeplayColorList = Array.isArray(colorList) ? colorList.slice() : [];
+            this._applyBallColor(ball, selectedColor);
             this.balls.push(ball);
             placed.push({ position: pos, radius: ballSize });
             this._trackSpawn(ball);
@@ -246,8 +283,9 @@ class FreeplayMode {
      * (Re)initializes freeplay session state and recreates balls.
      * @param {import('../Ball/BallManager').BallManager} BallManager
      */
-    start(BallManager) {
+    start(BallManager, context = {}) {
         this._ballManager = BallManager;
+        this._car = context.car || null;
         this._elapsedSeconds = 0;
         this.hits = 0;
         this.kills = 0;
@@ -263,19 +301,26 @@ class FreeplayMode {
         this._wasBoostHeld = false;
         this._missAccumulator = 0;
 
-        const overlay = FreeplayMode._ensureOverlay();
-        if (overlay) {
-            this._hudRoot = overlay;
-            this._hudFields = {
-                session: overlay.querySelector('[data-stat="session"]'),
-                kills: overlay.querySelector('[data-stat="kills"]'),
-                kps: overlay.querySelector('[data-stat="kps"]'),
-                accuracy: overlay.querySelector('[data-stat="accuracy"]'),
-                damage: overlay.querySelector('[data-stat="damage"]'),
-                spm: overlay.querySelector('[data-stat="spm"]'),
-                ttk: overlay.querySelector('[data-stat="ttk"]'),
-            };
+        if (this.showHud) {
+            const overlay = FreeplayMode._ensureOverlay();
+            if (overlay) {
+                this._hudRoot = overlay;
+                this._hudFields = {
+                    session: overlay.querySelector('[data-stat="session"]'),
+                    kills: overlay.querySelector('[data-stat="kills"]'),
+                    kps: overlay.querySelector('[data-stat="kps"]'),
+                    accuracy: overlay.querySelector('[data-stat="accuracy"]'),
+                    damage: overlay.querySelector('[data-stat="damage"]'),
+                    spm: overlay.querySelector('[data-stat="spm"]'),
+                    ttk: overlay.querySelector('[data-stat="ttk"]'),
+                };
+            }
+        } else {
+            this._hudRoot = null;
+            this._hudFields = null;
         }
+
+        this.setCarVisuals(this._car);
 
         this.createBalls(BallManager);
         this._syncHud();
@@ -284,9 +329,17 @@ class FreeplayMode {
     stop() {
         this.active = false;
         this._ballManager = null;
+        if (this._car) {
+            this._car.setForwardAxisVisible(false);
+            this._car.setHelperDonutVisible(false);
+            this._car.setAxisOfRotationVisible(false);
+        }
+        this._car = null;
         this._hudRoot = null;
         this._hudFields = null;
-        FreeplayMode._clearOverlay();
+        if (this.showHud) {
+            FreeplayMode._clearOverlay();
+        }
     }
 
     onHit(ball) {
@@ -334,6 +387,10 @@ class FreeplayMode {
             if (pos) {
                 ball.setPosition(pos);
                 if (typeof ball.respawn === 'function') ball.respawn();
+                const nextColor = ball.userData?.freeplayFixedColor !== undefined
+                    ? ball.userData.freeplayFixedColor
+                    : this._pickRandomColor(ball.userData?.freeplayColorList);
+                this._applyBallColor(ball, nextColor);
                 this._trackSpawn(ball);
             }
         }

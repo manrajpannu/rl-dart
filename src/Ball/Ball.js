@@ -453,4 +453,21 @@ export class Ball extends THREE.Group {
         }
     }
 
+    setBallColor(color) {
+        if (!this.ball || !this.ball.material) return;
+
+        if (Array.isArray(this.ball.material)) {
+            this.ball.material.forEach(material => {
+                if (material?.color?.set) {
+                    material.color.set(color);
+                }
+            });
+            return;
+        }
+
+        if (this.ball.material.color?.set) {
+            this.ball.material.color.set(color);
+        }
+    }
+
 }

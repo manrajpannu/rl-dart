@@ -420,6 +420,13 @@ export class Car extends THREE.Group {
     this.ballCam = !this.ballCam;
   }
 
+  setNeutralState(): void {
+    this.rotationVelocity.set(0, 0, 0);
+    if (this.Boost && typeof this.Boost.reset === 'function') {
+      this.Boost.reset();
+    }
+  }
+
   /**
    * Smoothly updates chase camera position/look target.
    */
