@@ -14,12 +14,16 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^25.6.0",
     "@types/three": "^0.183.1",
     "gh-pages": "^6.3.0",
+    "tailwindcss": "^4.2.2",
     "vite": "^7.1.9"
   },
   "dependencies": {
     "dat.gui": "^0.7.9",
-    "stats.js": "^0.17.0"
+    "stats.js": "^0.17.0",
+    "three": "^0.183.2"
   }
 }

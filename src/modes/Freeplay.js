@@ -13,12 +13,13 @@ class FreeplayMode {
      * @param {number} [options.numBalls=1]
      * @param {number} [options.health=3]
      * @param {any} [options.movement=null]
-     * @param {number} [options.size=1.5]
+    * @param {number | number[]} [options.size=1.5]
      * @param {boolean} [options.spawnOverlapping=true]
     * @param {boolean} [options.showHud=true]
     * @param {boolean} [options.holdSliderEnabled=false]
     * @param {number} [options.holdSliderSeconds=2.5]
     * @param {number} [options.missSampleRate=5]
+    * @param {'confetti' | 'bubble' | 'rainbowBubblePop' | 'neonStarburst' | 'plasmaRing' | 'holoShockwave' | 'whiteGlitterExplosion' | 'whiteGlitter' | 'rainbowGlitterExplosion' | 'rainbowGlitter' | 'glitterExplosion' | 'glitter' | 'shockwave' | null} [options.killEffect='confetti']
     * @param {Array<import('three').ColorRepresentation>} [options.colors=[]]
      * @param {number} [options.boundary=20]
      * @param {THREE.Vector3} [options.boundaryOrigin=new THREE.Vector3(0,0,0)]
@@ -34,6 +35,7 @@ class FreeplayMode {
         holdSliderEnabled = false,
         holdSliderSeconds = 2.5,
         missSampleRate = 5,
+        killEffect = 'confetti',
         colors = [],
         boundary = 20,
         boundaryOrigin = new THREE.Vector3(0, 0, 0),
@@ -54,6 +56,7 @@ class FreeplayMode {
         this.holdSliderEnabled = holdSliderEnabled;
         this.holdSliderSeconds = holdSliderSeconds;
         this.missSampleRate = missSampleRate;
+        this.killEffect = killEffect;
         this.colors = Array.isArray(colors) ? colors.slice() : [];
         this.boundary = boundary;
         this.boundaryOrigin = boundaryOrigin;
@@ -159,6 +162,25 @@ class FreeplayMode {
         return colors[index];
     }
 
+    _normalizeBallSize(sizeValue) {
+        const n = Number(sizeValue);
+        if (!Number.isFinite(n) || n <= 0) return 1.5;
+        return n;
+    }
+
+    _resolveBallSize(sizeOption) {
+        if (Array.isArray(sizeOption)) {
+            const candidates = sizeOption
+                .map(value => Number(value))
+                .filter(value => Number.isFinite(value) && value > 0);
+            if (candidates.length === 0) return 1.5;
+            const index = Math.floor(Math.random() * candidates.length);
+            return candidates[index];
+        }
+
+        return this._normalizeBallSize(sizeOption);
+    }
+
     _applyBallColor(ball, color) {
         if (!ball || color === null || color === undefined) return;
         if (typeof ball.setBallColor === 'function') {
@@ -209,9 +231,11 @@ class FreeplayMode {
             const cfg = this.ballConfigs[i] || {};
             const ballHealth = cfg.health !== undefined ? cfg.health : this.defaultHealth;
             const ballMovement = cfg.movement !== undefined ? cfg.movement : this.defaultMovement;
-            const ballSize = cfg.size !== undefined ? cfg.size : this.defaultSize;
+            const baseSizeOption = cfg.size !== undefined ? cfg.size : this.defaultSize;
+            const ballSize = this._resolveBallSize(baseSizeOption);
             const ballHoldSliderEnabled = cfg.holdSliderEnabled !== undefined ? cfg.holdSliderEnabled : this.holdSliderEnabled;
             const ballHoldSliderSeconds = cfg.holdSliderSeconds !== undefined ? cfg.holdSliderSeconds : this.holdSliderSeconds;
+            const ballKillEffect = Object.prototype.hasOwnProperty.call(cfg, 'killEffect') ? cfg.killEffect : this.killEffect;
             const colorList = Array.isArray(cfg.colors) ? cfg.colors : this.colors;
             const selectedColor = cfg.color !== undefined ? cfg.color : this._pickRandomColor(colorList);
 
@@ -244,6 +268,7 @@ class FreeplayMode {
                 health: ballHoldSliderEnabled ? 100 : ballHealth,
                 holdSliderEnabled: ballHoldSliderEnabled,
                 holdDurationSeconds: ballHoldSliderSeconds,
+                killEffect: ballKillEffect,
             };
             const ball = BallManager.createBall(pos, ballSize, ballMovement, healthObj);
             ball.userData = ball.userData || {};

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { withAssetBase } from '../assetBase.js';
 
 export class CarModel extends THREE.Group {
     constructor(scene, modelConfig) {
@@ -28,21 +29,21 @@ export class CarModel extends THREE.Group {
 export const CAR_MODELS = {
     octane: {
         name: 'octane',
-        modelUrl: `${import.meta.env.BASE_URL}models/octane/scene.gltf`,
+        modelUrl: withAssetBase('models/octane/scene.gltf'),
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }
     },
     fennec: {
         name: 'fennec',
-        modelUrl: `${import.meta.env.BASE_URL}models/fennec/scene.gltf`,
+        modelUrl: withAssetBase('models/fennec/scene.gltf'),
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }
     },
     dominus: {
         name: 'dominus',
-        modelUrl: `${import.meta.env.BASE_URL}models/dominus/scene.gltf`,
+        modelUrl: withAssetBase('models/dominus/scene.gltf'),
         scale: 0.012,
         position: { x: 0, y: -0.2, z: 0 },
         rotation: { x: 0, y: Math.PI / 2, z: 0 }

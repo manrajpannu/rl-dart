@@ -1,9 +1,10 @@
 // @ts-nocheck
 import * as THREE from 'three';
 import { CarModel, CAR_MODELS } from './CarModel.js';
-import { physics } from '../PhysicsConfig.js';
+import { physics } from '../physicsConfig.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
 import { BOOST_TYPES, createBoost } from './boost/BoostFactory.js';
+import { withAssetBase } from '../assetBase.js';
 
 type BoostInstance = {
   emitParticles: (position: THREE.Vector3, quaternion: THREE.Quaternion, dt: number) => void;
@@ -103,7 +104,7 @@ export class Car extends THREE.Group {
     this._rotationLine.visible = false;
     this.add(this._rotationLine);
 
-    this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 32, 32);
+    this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 64, 64);
     this._torusMaterial = new THREE.MeshStandardMaterial({ color: 'magenta' });
     this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
     this.torus.visible = false;
@@ -120,7 +121,7 @@ export class Car extends THREE.Group {
     this.lastInertiaZ = 0;
 
     this._shootSounds = Array.from({ length: 3 }, () => {
-      const a = new Audio('/rl-dart/sounds/shoot.ogg');
+      const a = new Audio(withAssetBase('sounds/shoot.ogg'));
       a.volume = 0.01;
       return a;
     });
@@ -525,7 +526,12 @@ export class Car extends THREE.Group {
     if (this.shootAccumulator <= 0) {
       const shootSound = this._shootSounds[this._shootSoundIndex];
       shootSound.currentTime = 0;
-      shootSound.play();
+      const playPromise = shootSound.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {
+          // Ignore playback errors (autoplay/media support) and keep simulation running.
+        });
+      }
       this._shootSoundIndex = (this._shootSoundIndex + 1) % this._shootSounds.length;
       this.shootAccumulator = 1 / this.dps;
     }

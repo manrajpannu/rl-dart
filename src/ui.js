@@ -1,5 +1,5 @@
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
-import {physics} from './PhysicsConfig.js'
+import {physics} from './physicsConfig.js'
 import { CAR_MODELS } from './Car/CarModel.js';
 import { Car } from './Car/Car';
 import { Ball } from './Ball/Ball.js';

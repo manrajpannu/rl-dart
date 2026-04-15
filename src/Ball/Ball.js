@@ -1,6 +1,16 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { withAssetBase } from '../assetBase.js';
 import { HealthBar } from './HealthBar/HealthBar.js';
+import { playConfettiExplosionEffect } from './effects/confettiExplosionEffect.js';
+import { playBubblePopEffect } from './effects/bubblePopEffect.js';
+import { playNullExplosionEffect } from './effects/nullExplosionEffect.js';
+import { playRainbowBubblePopEffect } from './effects/rainbowBubblePopEffect.js';
+import { playNeonStarburstEffect } from './effects/neonStarburstEffect.js';
+import { playPlasmaRingEffect } from './effects/plasmaRingEffect.js';
+import { playHoloShockwaveEffect } from './effects/holoShockwaveEffect.js';
+import { playWhiteGlitterExplosionEffect } from './effects/whiteGlitterExplosionEffect.js';
+import { playRainbowGlitterExplosionEffect } from './effects/rainbowGlitterExplosionEffect.js';
 
 /**
  * Ball entity used as a target in gameplay.
@@ -12,11 +22,32 @@ import { HealthBar } from './HealthBar/HealthBar.js';
  * - Drive visual helpers such as crosshair and health bar
  * - Trigger hit and kill sound effects
  */
+
+// Simple glow shader
+const GLOW_VERTEX_SHADER = `
+varying vec3 vNormal;
+void main() {
+    vNormal = normalize(normalMatrix * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}`;
+
+const GLOW_FRAGMENT_SHADER = `
+uniform vec3 glowColor;
+uniform float glowIntensity;
+varying vec3 vNormal;
+void main() {
+    float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+    gl_FragColor = vec4(glowColor, 1.0) * intensity * glowIntensity;
+    gl_FragColor.rgb += vec3(0.04, 0.12, 0.22); // subtle base color
+}`;
+
 export class Ball extends THREE.Group {
 
 
-    positive = new THREE.Color(0xffffff);
-    negative = new THREE.Color(0x000000);
+    positive = new THREE.Color('rgba(255,255,255,1.0)');
+    negative = new THREE.Color('rgba(0,0,0,1.0)');
+    idleGlowColor = new THREE.Color('rgba(45,102,255,1.0)');
+    activeGlowColor = new THREE.Color('rgba(122,248,255,1.0)');
 
 
     /**
@@ -24,13 +55,13 @@ export class Ball extends THREE.Group {
      * @param {number} radius Ball collision radius.
      * @param {{ update?: (ball: Ball, dt: number) => void, reset?: (ball: Ball) => void } | null} movement
      * Movement strategy object.
-    * @param {{ maxHealth?: number, health?: number, damageAmount?: number, dps?: number, holdSliderEnabled?: boolean, sliderDrainRate?: number, holdDurationSeconds?: number } | null} health
+    * @param {{ maxHealth?: number, health?: number, damageAmount?: number, dps?: number, holdSliderEnabled?: boolean, sliderDrainRate?: number, holdDurationSeconds?: number, killEffect?: 'confetti' | 'bubble' | 'rainbowBubblePop' | 'neonStarburst' | 'plasmaRing' | 'holoShockwave' | 'whiteGlitterExplosion' | 'whiteGlitter' | 'rainbowGlitterExplosion' | 'rainbowGlitter' | 'glitterExplosion' | 'glitter' | 'shockwave' | null } | null} health
      * Optional health config.
      */
     constructor(position = new THREE.Vector3(0, 3, -3), radius = 0.9125, movement = null, health = null) {
         super();
 
-        this.modelUrl = `${import.meta.env.BASE_URL}models/ball/scene.gltf`;
+        this.modelUrl = withAssetBase('models/ball/scene.gltf');
         this.baseRadius = radius;
         this.radius = radius;
 
@@ -54,6 +85,10 @@ export class Ball extends THREE.Group {
         this.holdDurationSeconds = hasHealth && health.holdDurationSeconds !== undefined
             ? Math.max(0.05, health.holdDurationSeconds)
             : Math.max(0.05, derivedHoldSeconds);
+        this.killEffectType = hasHealth && Object.prototype.hasOwnProperty.call(health, 'killEffect')
+            ? health.killEffect
+            : 'confetti';
+        this._killEffect = this._resolveKillEffect(this.killEffectType);
         this.healthBar = new HealthBar(1, 0.085, 0.05, this.maxHealth, this.health);
         this.healthBar.position.set(0, radius + 0.5, 0);
         this.add(this.healthBar);
@@ -62,12 +97,12 @@ export class Ball extends THREE.Group {
         // SFX
         // Use a pool of Audio objects for overlapping playback
         this._killSounds = Array.from({length: 3}, () => {
-            const a = new Audio('/rl-dart/sounds/kill.ogg');
+            const a = new Audio(withAssetBase('sounds/kill.ogg'));
             a.volume = 0.1;
             return a;
         });
         this._hitSounds = Array.from({length: 3}, () => {
-            const a = new Audio('/rl-dart/sounds/hit.ogg');
+            const a = new Audio(withAssetBase('sounds/hit.ogg'));
             a.volume = 0.1;
             return a;
         });
@@ -78,12 +113,13 @@ export class Ball extends THREE.Group {
         // Outer transparent indicatorSphere for visual effect
         const geometry = new THREE.SphereGeometry(radius+0.01, 64, 64);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff5555,
+            color: this.idleGlowColor,
             transparent: true,
             opacity: 0.05,
             toneMapped: false,
             fog: false,
             depthWrite: false,
+            blending: THREE.AdditiveBlending,
         });
         this.indicatorSphere = new THREE.Mesh(geometry, material);
         this.indicatorSphere.castShadow = false;
@@ -94,7 +130,6 @@ export class Ball extends THREE.Group {
         // ball model
         // this.loader = new GLTFLoader();
         // this.loader.load(this.modelUrl, (gltf) => {
-        //     this.ball = gltf.scene;
         //     this.ball.scale.set(1,1,1);
         //     this.ball.position.set(0, 0, 0);
         //     this.add(this.ball);    
@@ -102,8 +137,28 @@ export class Ball extends THREE.Group {
 
         // Use a simple blue sphere as the ball
         const ballGeometry = new THREE.SphereGeometry(this.radius, 128, 128);
-        const ballMaterial = new THREE.MeshStandardMaterial({ color: 0x0049ef4, roughness: 0.95, metalness: 0.5, opacity: 1 });
-        this.ball = new THREE.Mesh(ballGeometry, ballMaterial);
+        // Default material
+        this.defaultBallMaterial = new THREE.MeshStandardMaterial({
+            color: 0x049ef4,
+            roughness: 0.7,
+            metalness: 0.3,
+            emissive: 0x172238,
+            emissiveIntensity: 0.2,
+            opacity: 1,
+        });
+        // Glow material (shader)
+        this.glowBallMaterial = new THREE.ShaderMaterial({
+            vertexShader: GLOW_VERTEX_SHADER,
+            fragmentShader: GLOW_FRAGMENT_SHADER,
+            uniforms: {
+                glowColor: { value: new THREE.Color('rgba(122,248,255,1.0)') },
+                glowIntensity: { value: 2.2 }
+            },
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+        });
+        this.ball = new THREE.Mesh(ballGeometry, this.defaultBallMaterial);
         this.ball.castShadow = true;
         this.ball.receiveShadow = true;
         this.ball.position.set(0, 0, 0);
@@ -122,6 +177,8 @@ export class Ball extends THREE.Group {
         const dot =     new THREE.Mesh(dotGeom, dotMat);
         this.crosshair = dot;
         this.add(this.crosshair);
+
+        this.negativeColor();
 
 
     }
@@ -169,7 +226,10 @@ export class Ball extends THREE.Group {
                 if (this.hitAccumulator <= 0) {
                     const hitSound = this._hitSounds[this._hitSoundIndex];
                     hitSound.currentTime = 0;
-                    hitSound.play();
+                    const playPromise = hitSound.play();
+                    if (playPromise && typeof playPromise.catch === 'function') {
+                        playPromise.catch(() => {});
+                    }
                     this._hitSoundIndex = (this._hitSoundIndex + 1) % this._hitSounds.length;
                     this.hitAccumulator = 1 / this.dps;
                 }
@@ -217,7 +277,10 @@ export class Ball extends THREE.Group {
                 // Play hit sound from pool
                 const hitSound = this._hitSounds[this._hitSoundIndex];
                 hitSound.currentTime = 0;
-                hitSound.play();
+                const playPromise = hitSound.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {});
+                }
                 this._hitSoundIndex = (this._hitSoundIndex + 1) % this._hitSounds.length;
                 this.damage();
                 this.hitAccumulator = 1 / this.dps;
@@ -304,13 +367,65 @@ export class Ball extends THREE.Group {
     isKilled () {
         if (this.healthBarEnabled && this.alive && this.justHit && this.health <= 0) {
             this.alive = false;
+            this._playKillEffect();
             // Play kill sound from pool
             const killSound = this._killSounds[this._killSoundIndex];
             killSound.currentTime = 0;
-            killSound.play();
+            const playPromise = killSound.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {});
+            }
             this._killSoundIndex = (this._killSoundIndex + 1) % this._killSounds.length;
             return true;
         }
+    }
+
+    _resolveKillEffect(type) {
+        if (type === null || type === undefined) return playNullExplosionEffect;
+
+        switch (String(type).toLowerCase()) {
+            case 'bubble':
+            case 'bubble-pop':
+            case 'bubblepop':
+            case 'classic':
+                return playBubblePopEffect;
+            case 'rainbowbubblepop':
+            case 'rainbow-bubble-pop':
+            case 'rainbowbubble':
+                return playRainbowBubblePopEffect;
+            case 'neonstarburst':
+            case 'neon-starburst':
+            case 'starburst':
+                return playNeonStarburstEffect;
+            case 'plasmaring':
+            case 'plasma-ring':
+                return playPlasmaRingEffect;
+            case 'holoshockwave':
+            case 'holo-shockwave':
+            case 'shockwave':
+                return playHoloShockwaveEffect;
+            case 'whiteglitterexplosion':
+            case 'white-glitter-explosion':
+            case 'whiteglitter':
+            case 'glitterexplosion':
+            case 'glitter-explosion':
+            case 'glitter':
+                return playWhiteGlitterExplosionEffect;
+            case 'rainbowglitterexplosion':
+            case 'rainbow-glitter-explosion':
+            case 'rainbowglitter':
+            case 'rainbow glitter':
+                return playRainbowGlitterExplosionEffect;
+            case 'confetti':
+                return playConfettiExplosionEffect;
+            default:
+                return playNullExplosionEffect;
+        }
+    }
+
+    _playKillEffect() {
+        if (typeof this._killEffect !== 'function') return;
+        this._killEffect(this);
     }
     
     playHitSound(dt) {
@@ -320,7 +435,10 @@ export class Ball extends THREE.Group {
         if (this.hitAccumulator <= 0) {
             const hitSound = this._hitSounds[this._hitSoundIndex];
             hitSound.currentTime = 0;
-            hitSound.play();
+            const playPromise = hitSound.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                playPromise.catch(() => {});
+            }
             this._hitSoundIndex = (this._hitSoundIndex + 1) % this._hitSounds.length;
             this.damage();
             this.hitAccumulator = 1 / this.dps;
@@ -334,15 +452,43 @@ export class Ball extends THREE.Group {
         this.indicatorSphere.material.opacity = 0.05;
         this.indicatorSphere.material.color.set(rainbowColor);
     }
-    
-    positiveColor() {
-        this.indicatorSphere.material.opacity = 0;
-        this.indicatorSphere.material.color.set(this.positive);
+
+    _setBallEmissive(color, intensity) {
+        const material = this.ball?.material;
+        if (!material) return;
+
+        if (Array.isArray(material)) {
+            material.forEach(mat => {
+                if (mat?.emissive?.set) {
+                    mat.emissive.set(color);
+                    mat.emissiveIntensity = intensity;
+                }
+            });
+            return;
+        }
+
+        if (material.emissive?.set) {
+            material.emissive.set(color);
+            material.emissiveIntensity = intensity;
+        }
     }
     
+    positiveColor() {
+        // When intersected: swap to glow material
+        if (this.ball.material !== this.glowBallMaterial) {
+            this.ball.material = this.glowBallMaterial;
+        }
+        this.indicatorSphere.material.opacity = 0.22;
+        this.indicatorSphere.material.color.set(this.activeGlowColor);
+    }
+
     negativeColor() {
-        this.indicatorSphere.material.color.set(this.negative);
-        this.indicatorSphere.material.opacity = 0.1;
+        // When not intersected: swap to default material
+        if (this.ball.material !== this.defaultBallMaterial) {
+            this.ball.material = this.defaultBallMaterial;
+        }
+        this.indicatorSphere.material.color.set(this.idleGlowColor);
+        this.indicatorSphere.material.opacity = 0.05;
     }
     
     toggleHealthBar() {
@@ -368,6 +514,10 @@ export class Ball extends THREE.Group {
         }
 
         this.healthBar.visible = !!isLookedAt || this.health < this.maxHealth;
+    }
+
+    getRadius() {
+        return this.radius;
     }
     
     setRadius(newRadius) {
@@ -421,6 +571,10 @@ export class Ball extends THREE.Group {
     respawn() {
         this.alive = true;
         this.health = this.maxHealth;
+        this.justHit = false;
+        this.intersecting = false;
+        this.targetTimer = 0;
+        this.hitAccumulator = 0;
         this.healthBar.setMaxHealth(this.maxHealth);
         this.healthBar.setHealth(this.maxHealth);
         this.updateHealthBarVisibility(false);

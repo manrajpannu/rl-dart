@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Boost, BOOST_DEFAULTS } from "./Boost.js";
+import { withAssetBase } from "../../assetBase.js";
 
 const VERTEX_SHADER = `
 attribute float aLife;
@@ -97,8 +98,8 @@ export class ShaderFireSmokeBoost extends Boost {
     this._lifeTotal = new Float32Array(this._poolSize);
 
     const loader = new THREE.TextureLoader();
-    this._fireSprite = loader.load(`${import.meta.env.BASE_URL}images/boost/fire-sprite.svg`);
-    this._smokeSprite = loader.load(`${import.meta.env.BASE_URL}images/boost/smoke-sprite.svg`);
+    this._fireSprite = loader.load(withAssetBase('images/boost/fire-sprite.svg'));
+    this._smokeSprite = loader.load(withAssetBase('images/boost/smoke-sprite.svg'));
     [this._fireSprite, this._smokeSprite].forEach(tex => {
       tex.wrapS = THREE.ClampToEdgeWrapping;
       tex.wrapT = THREE.ClampToEdgeWrapping;

@@ -9,6 +9,7 @@ import ChallengeMode from './modes/ChallengeMode';
 import FreeplayMode from './modes/Freeplay';
 import { Ball } from './Ball/Ball';
 import { FlowMovement } from './Ball/Movement/FlowMovement'; 
+import { ToonSky } from './environment/ToonSky';
 
 interface ModeLike {
   name?: string;
@@ -16,6 +17,10 @@ interface ModeLike {
   hits?: number;
   kills?: number;
   score?: number;
+  _damageDealt?: number;
+  _damagePossible?: number;
+  _shots?: number;
+  _elapsedSeconds?: number;
   timeElapsed?: number;
   timeLimit?: number;
   start: (ballManager: BallManager, context?: { car?: Car }) => void | Promise<void>;
@@ -30,9 +35,14 @@ interface ModeState {
   modeName: string;
   active: boolean;
   isChallenge: boolean;
+  completed: boolean;
   hits: number;
   kills: number;
   score: number;
+  damageDealt: number;
+  damagePossible: number;
+  shots: number;
+  elapsedSeconds: number;
   timeLeft: number | null;
   timeLimit: number | null;
 }
@@ -41,9 +51,10 @@ interface ChallengePreset {
   numBalls: number;
   health: number;
   movement: any;
-  size: number;
+  size: number | Array<number>;
   boundary: number;
   timeLimit: number;
+  killEffect?: 'confetti' | 'bubble' | 'rainbowBubblePop' | 'neonStarburst' | 'plasmaRing' | 'holoShockwave' | 'whiteGlitterExplosion' | 'whiteGlitter' | 'rainbowGlitterExplosion' | 'rainbowGlitter' | 'glitterExplosion' | 'glitter' | 'shockwave' | null;
 }
 
 // const canvas = document.getElementById('hud') as HTMLCanvasElement | null;
@@ -135,6 +146,7 @@ export class Engine extends THREE.Group {
   car: Car;
   BallManager: BallManager;
   map: GameMap;
+  sky: ToonSky;
   controller: Controller;
   currentMode: ModeLike;
   currentClosestBall: Ball | null;
@@ -159,6 +171,7 @@ export class Engine extends THREE.Group {
         size: 2,
         boundary: 15,
         timeLimit: 30,
+        killEffect: 'shockwave',
       },
       Accuracy: {
         numBalls: 2,
@@ -167,6 +180,7 @@ export class Engine extends THREE.Group {
         size: 1.8,
         boundary: 18,
         timeLimit: 45,
+        killEffect: 'shockwave',
       },
       Endurance: {
         numBalls: 4,
@@ -175,6 +189,7 @@ export class Engine extends THREE.Group {
         size: 2,
         boundary: 22,
         timeLimit: 90,
+        killEffect: 'shockwave',
       },
     };
 
@@ -199,11 +214,11 @@ export class Engine extends THREE.Group {
       keyLight.shadow.normalBias = 0.02;
       this.add(keyLight);
 
-      const fillLight = new THREE.DirectionalLight(0xffffff, 0.95);
+      const fillLight = new THREE.DirectionalLight(0xffffff, 3.5);
       fillLight.position.set(100, 200, 100);
       this.add(fillLight);
 
-      const rimLight = new THREE.DirectionalLight(0xffffff, 1.7);
+      const rimLight = new THREE.DirectionalLight(0xffffff, 2.5);
       rimLight.position.set(-100, -200, -100);
       this.add(rimLight);
     }
@@ -211,13 +226,16 @@ export class Engine extends THREE.Group {
     this.car = new Car(this);
     this.add(this.car);
 
+    this.sky = new ToonSky();
+    this.add(this.sky);
+
     this.BallManager = new BallManager();
     this.add(this.BallManager);
 
     this.map = new GameMap();
     this.map.gen();
     this.map.position.y = -15;
-    this.add(this.map);
+    // this.add(this.map);
 
     this.controller = new Controller();
 
@@ -233,26 +251,38 @@ export class Engine extends THREE.Group {
     // });
 
     // 5_targets_big
+    this.currentMode = new ChallengeMode({
+      size: [3,5],
+      numBalls: 3,
+      holdSliderEnabled: true,
+      holdSliderSeconds: 0.5,
+      movement: null,
+      killEffect: 'confetti',
+      colors: ['#049ef4', '#04f460', '#f4e404', '#f776fc',],
+      boundary: 40,
+    });
+
+    // 5_targets_tracking_small
     // this.currentMode = new ChallengeMode({
-    //   size: 2,
+    //   size: 1,
     //   numBalls: 5,
     //   holdSliderEnabled: true,
-    //   holdSliderSeconds: 0.5,
-    //   movement: null,
+    //   holdSliderSeconds: 1,
+    //   movement: FlowMovement,
     //   colors: ['#049ef4'],
     //   boundary: 20,
     // });
 
     // 5_targets_tracking_small
-    this.currentMode = new ChallengeMode({
-      size: 1,
-      numBalls: 5,
-      holdSliderEnabled: true,
-      holdSliderSeconds: 1,
-      movement: FlowMovement,
-      colors: ['#049ef4'],
-      boundary: 20,
-    });
+    // this.currentMode = new ChallengeMode({
+    //   size: 2,
+    //   numBalls: 3,
+    //   holdSliderEnabled: true,
+    //   holdSliderSeconds: 1,
+    //   movement: FlowMovement,
+    //   colors: ['#049ef4'],
+    //   boundary: 20,
+    // });
 
 
     this.currentMode.start(this.BallManager, { car: this.car });
@@ -273,7 +303,7 @@ export class Engine extends THREE.Group {
     this.BallManager.on('hit', this._onHit);
     this.BallManager.on('killed', this._onKill);
 
-    createUI(this.car, this.controller, undefined, this.map, renderer, this);
+    // createUI(this.car, this.controller, undefined, this.map, renderer, this);
 
     window.addEventListener('gamepadconnected', e => {
       const gp = navigator.getGamepads()[e.gamepad.index];
@@ -295,6 +325,8 @@ export class Engine extends THREE.Group {
    * @param dt Fixed simulation delta time in seconds.
    */
   update(dt: number): void {
+    this.sky?.update(dt);
+
     const { yaw, pitch, roll, boostHeld, ballCam } = this.controller.handleController();
 
     if (!this.currentMode.active && this.currentMode.shouldPauseGameplay?.()) {
@@ -370,7 +402,11 @@ export class Engine extends THREE.Group {
 
   setModeByName(modeName: string, options: Record<string, any> = {}): void {
     if (modeName === 'Challenge') {
-      this.setMode(new ChallengeMode({ ...this._challengePresets.Warmup, ...options }));
+      this.setMode(new ChallengeMode({
+        ...this._challengePresets.Warmup,
+        killEffect: 'shockwave',
+        ...options,
+      }));
       return;
     }
 
@@ -413,9 +449,14 @@ export class Engine extends THREE.Group {
       modeName,
       active: Boolean(this.currentMode?.active),
       isChallenge,
+      completed: Boolean((this.currentMode as any)?.completed),
       hits: Number(this.currentMode?.hits ?? 0),
       kills: Number(this.currentMode?.kills ?? 0),
       score: Number(this.currentMode?.score ?? 0),
+      damageDealt: Number(this.currentMode?._damageDealt ?? 0),
+      damagePossible: Number(this.currentMode?._damagePossible ?? 0),
+      shots: Number(this.currentMode?._shots ?? 0),
+      elapsedSeconds: Number(this.currentMode?._elapsedSeconds ?? 0),
       timeLeft: isChallenge ? Number(this.currentMode?.timeElapsed ?? 0) : null,
       timeLimit: isChallenge ? Number(this.currentMode?.timeLimit ?? 0) : null,
     };
