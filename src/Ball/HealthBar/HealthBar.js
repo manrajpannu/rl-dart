@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 export class HealthBar extends THREE.Group {
-    constructor(width = 1, height = 0.06, radius = 0.05, maxHealth, health) {
+    constructor(width = 1, height = 0.12, radius = 0.05, maxHealth, health) {
         super();
         this.width = width;
         this.height = height;
@@ -21,7 +21,7 @@ export class HealthBar extends THREE.Group {
             'black'
         );
         this.borderMesh.position.z = -0.02;
-        this.add(this.borderMesh);
+        // this.add(this.borderMesh);
 
         // Create background (missing health)
         this.bgMesh = this._createSquircleMesh(
@@ -148,5 +148,5 @@ export class HealthBar extends THREE.Group {
         this.lookAt(camera.position);
     }
 
-    
+
 }

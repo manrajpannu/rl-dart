@@ -1,5 +1,9 @@
-import * as THREE from 'three';
 import FreeplayMode from './Freeplay.js';
+
+const LAST_BEST_SCORE = 2000;
+const BAR_MAX_SCORE = LAST_BEST_SCORE;
+const CURSOR_AHEAD_COLOR = '#ff0000';
+const CURSOR_BEHIND_COLOR = '#d3d3d3';
 
 /**
  * Timed score-attack mode.
@@ -8,8 +12,6 @@ import FreeplayMode from './Freeplay.js';
  * a visible timer that ends the run when time reaches zero.
  */
 class ChallengeMode extends FreeplayMode {
-    static _activeInstance = null;
-
     setCarVisuals(car) {
         if (!car) return;
         car.setForwardAxisVisible(false);
@@ -19,196 +21,140 @@ class ChallengeMode extends FreeplayMode {
 
     static _ensureOverlay() {
         if (typeof document === 'undefined') return null;
-        let overlay = document.getElementById('challenge-overlay');
+
+        const overlayClassName = 'challenge-hud pointer-events-none fixed inset-0 z-[10050] font-sans font-bold uppercase text-center text-white';
+        const overlayMarkup = `
+            <style>
+                @-webkit-keyframes cursor-rainbow {
+                    0%{background-position:0% 82%}
+                    50%{background-position:100% 19%}
+                    100%{background-position:0% 82%}
+                }
+                @-moz-keyframes cursor-rainbow {
+                    0%{background-position:0% 82%}
+                    50%{background-position:100% 19%}
+                    100%{background-position:0% 82%}
+                }
+                @-o-keyframes cursor-rainbow {
+                    0%{background-position:0% 82%}
+                    50%{background-position:100% 19%}
+                    100%{background-position:0% 82%}
+                }
+                @keyframes cursor-rainbow { 
+                    0%{background-position:0% 82%}
+                    50%{background-position:100% 19%}
+                    100%{background-position:0% 82%}
+                }
+                .cursor-rainbow {
+                    background: linear-gradient(124deg, #ff2400, #e81d1d, #e8b71d, #e3e81d, #1de840, #1ddde8, #2b1de8, #dd00f3, #dd00f3);
+                    background-size: 1800% 1800%;
+                    -webkit-animation: cursor-rainbow 18s ease infinite;
+                    -moz-animation: cursor-rainbow 18s ease infinite;
+                    -o-animation: cursor-rainbow 18s ease infinite;
+                    animation: cursor-rainbow 18s ease infinite;
+                }
+            </style>
+            <div class="challenge-hud__top-stack absolute inset-x-0 top-[50px] mx-auto grid w-[min(520px,calc(100vw-24px))] gap-1">
+                    <div class="challenge-hud__top grid grid-cols-[1fr_minmax(160px,1.1fr)_1fr] items-center gap-2.5">
+                        <div class="challenge-hud__item challenge-hud__item--left bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center text-[16px] font-bold tabular-nums whitespace-nowrap uppercase tracking-[0.12em] [clip-path:polygon(8%_0,100%_0,92%_100%,0_100%)]" data-challenge="kills">Kills 0</div>
+                        <div class="challenge-hud__item challenge-hud__item--center bg-[rgba(0,0,0,0.3)] px-5 py-3 text-center text-[clamp(44px,7vw,78px)] leading-none font-bold tabular-nums whitespace-nowrap tracking-[0.03em] uppercase [clip-path:polygon(4%_0,96%_0,100%_100%,0_100%)]" data-challenge="time">0:00</div>
+                        <div class="challenge-hud__item challenge-hud__item--right bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center text-[16px] font-bold tabular-nums whitespace-nowrap uppercase tracking-[0.12em] [clip-path:polygon(0_0,92%_0,100%_100%,8%_100%)]" data-challenge="percent">0%</div>
+                    </div>
+                    <div class="challenge-hud__bar relative h-4 overflow-hidden bg-[rgba(0,0,0,0.3)] [clip-path:polygon(0_0,100%_0,92%_100%,8%_100%)]" aria-hidden="true">
+                        <div class="challenge-hud__bar-fill absolute inset-y-0 left-0 w-0 bg-white" data-challenge="bar-fill"></div>
+                        <div class="challenge-hud__bar-cursor absolute left-0 top-1/2 size-4 -translate-y-1/2 rounded-full bg-white transition-[left] duration-100 linear" data-challenge="bar-cursor"></div>
+                    </div>
+                </div>
+                <div class="challenge-hud__ammo is-hidden absolute inset-x-0 bottom-10 mx-auto inline-flex w-fit min-w-[220px] items-center justify-center gap-3 bg-[rgba(0,0,0,0.3)] px-5 py-3 text-center text-[20px] font-bold uppercase tracking-[0.12em] [clip-path:polygon(14%_0,86%_0,100%_100%,0_100%)]" data-challenge="ammo">
+                    <span class="challenge-hud__ammo-icon inline-block size-4 rounded-full bg-white" aria-hidden="true"></span>
+                    <span class="challenge-hud__ammo-text font-bold uppercase" data-challenge="ammo-value">0</span>
+                </div>`;
+
+        let overlay = document.getElementById('challenge-hud');
         if (!overlay) {
             overlay = document.createElement('div');
-            overlay.id = 'challenge-overlay';
-            overlay.className = 'challenge-overlay';
-            document.body.appendChild(overlay);
+            overlay.id = 'challenge-hud';
         }
+
+        if (overlay.dataset.hudSkinVersion !== 'v6') {
+            overlay.className = overlayClassName;
+            overlay.innerHTML = overlayMarkup;
+            overlay.dataset.hudSkinVersion = 'v6';
+        } else {
+            overlay.className = overlayClassName;
+        }
+
+        const mount = document.getElementById('three-container') || document.body;
+        if (overlay.parentElement !== mount) {
+            mount.appendChild(overlay);
+        }
+
         return overlay;
     }
 
-    static _showCountdown(text) {
-        const overlay = ChallengeMode._ensureOverlay();
-        if (!overlay) return;
-        overlay.innerHTML = `
-            <div class="challenge-overlay__center">
-                <div class="freeplay-panel challenge-panel challenge-panel--countdown">
-                    <div class="freeplay-panel__accent"></div>
-                    <div class="freeplay-panel__header challenge-panel__header">
-                        <div class="freeplay-panel__title">challenge</div>
-                        <div class="freeplay-panel__subtitle">countdown</div>
-                    </div>
-                    <div class="challenge-countdown-value">${text}</div>
-                </div>
-            </div>`;
-    }
-
-    static _showPaused(time) {
-        const overlay = ChallengeMode._ensureOverlay();
-        if (!overlay) return;
-        overlay.classList.add('challenge-overlay--interactive');
-        overlay.innerHTML = `
-            <div class="challenge-overlay__center">
-                <div class="freeplay-panel challenge-panel challenge-panel--countdown">
-                    <div class="freeplay-panel__accent"></div>
-                    <div class="freeplay-panel__header challenge-panel__header">
-                        <div class="freeplay-panel__title">challenge</div>
-                        <div class="freeplay-panel__subtitle">paused</div>
-                    </div>
-                    <div class="challenge-countdown-value challenge-countdown-value--paused">paused</div>
-                    <div class="challenge-paused-chip">time left: ${Math.max(0, Math.ceil(time))}s</div>
-                    <div class="challenge-pause-actions">
-                        <button type="button" data-action="resume" class="challenge-action challenge-action--resume">resume</button>
-                        <button type="button" data-action="settings" class="challenge-action challenge-action--settings">settings</button>
-                        <button type="button" data-action="leave" class="challenge-action challenge-action--leave">leave to play</button>
-                    </div>
-                </div>
-            </div>`;
-
-        const resumeButton = overlay.querySelector('[data-action="resume"]');
-        const settingsButton = overlay.querySelector('[data-action="settings"]');
-        const leaveButton = overlay.querySelector('[data-action="leave"]');
-
-        if (resumeButton) {
-            resumeButton.addEventListener('click', () => {
-                ChallengeMode._activeInstance?._resumeFromPause();
-            });
-        }
-        if (settingsButton) {
-            settingsButton.addEventListener('click', () => {
-                window.location.href = '/settings';
-            });
-        }
-        if (leaveButton) {
-            leaveButton.addEventListener('click', () => {
-                window.location.href = '/play';
-            });
-        }
-    }
-
-    static _showTimer(time) {
-        const overlay = ChallengeMode._ensureOverlay();
-        if (!overlay) return;
-        overlay.classList.remove('challenge-overlay--interactive');
-        let timerDiv = overlay.querySelector('.challenge-timer');
-        if (!timerDiv) {
-            timerDiv = document.createElement('div');
-            timerDiv.className = 'challenge-timer';
-            timerDiv.innerHTML = `
-                <div class="freeplay-panel challenge-panel challenge-panel--timer">
-                    <div class="freeplay-panel__accent"></div>
-                    <div class="freeplay-panel__header challenge-panel__header">
-                        <div class="freeplay-panel__title">challenge</div>
-                        <div class="freeplay-panel__subtitle">time left</div>
-                    </div>
-                    <div class="freeplay-stats">
-                        <div class="freeplay-stat challenge-timer__stat">
-                            <span class="freeplay-stat__label">timer</span>
-                            <span class="freeplay-stat__value" data-challenge-timer>0</span>
-                        </div>
-                    </div>
-                </div>`;
-            overlay.appendChild(timerDiv);
-        }
-        const timerValue = timerDiv.querySelector('[data-challenge-timer]');
-        if (timerValue) {
-            timerValue.textContent = String(time);
-        }
-    }
-
     static _clearOverlay() {
-        const overlay = document.getElementById('challenge-overlay');
-        if (!overlay) return;
-        overlay.classList.remove('challenge-overlay--interactive');
-        overlay.innerHTML = '';
-    }
-
-    static _showSummary(stats) {
-        const overlay = ChallengeMode._ensureOverlay();
-        if (!overlay) return;
-        overlay.classList.add('challenge-overlay--interactive');
-        overlay.innerHTML = `
-            <div class="challenge-overlay__center">
-                <div class="freeplay-panel challenge-panel challenge-panel--summary">
-                    <div class="freeplay-panel__accent"></div>
-                    <div class="freeplay-panel__header challenge-panel__header">
-                        <div class="freeplay-panel__title">challenge complete</div>
-                        <div class="freeplay-panel__subtitle">results</div>
-                    </div>
-                    <div class="freeplay-stats">
-                        <div class="freeplay-stat"><span class="freeplay-stat__label">score</span><span class="freeplay-stat__value">${stats.score}</span></div>
-                        <div class="freeplay-stat"><span class="freeplay-stat__label">hits</span><span class="freeplay-stat__value">${stats.hits}</span></div>
-                        <div class="freeplay-stat"><span class="freeplay-stat__label">kills</span><span class="freeplay-stat__value">${stats.kills}</span></div>
-                        <div class="freeplay-stat"><span class="freeplay-stat__label">accuracy</span><span class="freeplay-stat__value">${stats.accuracy}</span></div>
-                        <div class="freeplay-stat"><span class="freeplay-stat__label">time</span><span class="freeplay-stat__value">${stats.time}s</span></div>
-                    </div>
-                </div>
-            </div>`;
+        if (typeof document === 'undefined') return;
+        const overlay = document.getElementById('challenge-hud');
+        if (overlay) overlay.remove();
     }
     /**
-     * @param {Object} options
-     * @param {number} [options.numBalls=1]
-     * @param {number} [options.health=3]
-     * @param {any} [options.movement=null]
-    * @param {number | number[]} [options.size=1.5]
-     * @param {boolean} [options.spawnOverlapping=true]
-    * @param {boolean} [options.showHud=false]
-     * @param {boolean} [options.holdSliderEnabled=false]
-     * @param {number} [options.holdSliderSeconds=2.5]
-     * @param {number} [options.missSampleRate=5]
-    * @param {'confetti' | 'bubble' | 'rainbowBubblePop' | 'neonStarburst' | 'plasmaRing' | 'holoShockwave' | 'whiteGlitterExplosion' | 'whiteGlitter' | 'rainbowGlitterExplosion' | 'rainbowGlitter' | 'glitterExplosion' | 'glitter' | 'shockwave' | null} [options.killEffect='confetti']
-     * @param {Array<import('three').ColorRepresentation>} [options.colors=[]]
-     * @param {number} [options.timeLimit=60]
-     * @param {number} [options.boundary=20]
-     * @param {THREE.Vector3} [options.boundaryOrigin=new THREE.Vector3(0,0,0)]
-     * @param {Array} [options.ballConfigs=[]]
+     * @param {import('./Freeplay.js').FreeplayOptions & { timeLimit?: number }} options
      */
     constructor({
         timeLimit = 60,
         showHud = false,
+        pointsPerKill = 50,
+        pointsPerHit = 10,
+        pointsPerMiss = 0,
         ...freeplayOptions
     } = {}) {
         super({
             showHud,
+            pointsPerKill,
+            pointsPerHit,
+            pointsPerMiss,
             ...freeplayOptions,
         });
         this.timeElapsed = timeLimit;
         this.timeLimit = timeLimit;
-        this._countdownActive = false;
         this._paused = false;
         this._completed = false;
         this.completed = false;
         this._keydownHandler = null;
         this._car = null;
-        ChallengeMode._activeInstance = this;
+        this._challengeHudFields = null;
+        this._cursorProgress = 0;
+        this._lastHudTime = null;
     }
 
     shouldPauseGameplay() {
-        return (this._countdownActive || this._paused) && !this.active;
+        return this._paused && !this.active;
+    }
+
+    restart() {
+        if (this._ballManager) {
+            this.start(this._ballManager, { car: this._car });
+        }
     }
 
     update(dt, context = {}) {
         if (!this.active) return;
         super.update(dt, context);
         this.timeElapsed -= dt;
-        if (typeof window !== 'undefined') {
-            ChallengeMode._showTimer(Math.ceil(this.timeElapsed));
-        }
         if (this.timeElapsed <= 0) {
             this.timeElapsed = 0;
             this._completed = true;
             this.completed = true;
             this.stop();
         }
+        this._syncChallengeHud();
         return dt;
     }
 
     _bindPauseHotkey() {
         if (typeof window === 'undefined' || this._keydownHandler) return;
         this._keydownHandler = (event) => {
-            if (event.code !== 'Escape' || this._countdownActive || this._completed) return;
+            if (event.code !== 'Escape' || this._completed) return;
             event.preventDefault();
             if (this.active) {
                 this.active = false;
@@ -216,7 +162,6 @@ class ChallengeMode extends FreeplayMode {
                 if (this._car && typeof this._car.setNeutralState === 'function') {
                     this._car.setNeutralState();
                 }
-                ChallengeMode._showPaused(this.timeElapsed);
                 return;
             }
 
@@ -231,8 +176,6 @@ class ChallengeMode extends FreeplayMode {
         if (!this._paused) return;
         this._paused = false;
         this.active = true;
-        ChallengeMode._clearOverlay();
-        ChallengeMode._showTimer(Math.ceil(this.timeElapsed));
     }
 
     _unbindPauseHotkey() {
@@ -249,45 +192,27 @@ class ChallengeMode extends FreeplayMode {
         super.start(BallManager, context);
         this._car = context.car || null;
         this.timeElapsed = this.timeLimit;
-        this.active = false;
-        this._countdownActive = true;
+        this.active = true;
         this._paused = false;
         this._completed = false;
         this.completed = false;
+        this._cursorProgress = 0;
+        this._lastHudTime = null;
         this._bindPauseHotkey();
         if (this._car && typeof this._car.setNeutralState === 'function') {
             this._car.setNeutralState();
         }
-        // Countdown logic
-        const countdown = async (n) => {
-            for (let i = n; i > 0; i--) {
-                if (typeof window !== 'undefined') {
-                    ChallengeMode._showCountdown(i);
-                }
-                await new Promise(res => setTimeout(res, 1000));
-            }
-        };
-        await countdown(3);
-        if (typeof window !== 'undefined') {
-            ChallengeMode._showCountdown('GO');
-            setTimeout(() => ChallengeMode._clearOverlay(), 1000);
-        }
-        this._countdownActive = false;
-        this.active = true;
-        // Show timer immediately on start
-        if (typeof window !== 'undefined') {
-            ChallengeMode._showTimer(Math.ceil(this.timeElapsed));
-        }
+        this._initChallengeHud();
+        this._syncChallengeHud();
         console.log("Challenge started!");
     }
 
     stop() {
-        this._countdownActive = false;
         this._paused = false;
         this._car = null;
-        this._unbindPauseHotkey();
+        this._challengeHudFields = null;
         ChallengeMode._clearOverlay();
-        ChallengeMode._activeInstance = null;
+        this._unbindPauseHotkey();
         if (!this._completed) {
             this.completed = false;
         }
@@ -295,18 +220,100 @@ class ChallengeMode extends FreeplayMode {
         console.log(`Challenge Over! Score: ${this.score}, Hits: ${this.hits}, Kills: ${this.kills}`);
     }
 
+    onMiss() {
+        super.onMiss();
+        if (!this.active) return;
+        this._syncChallengeHud();
+    }
+
     onHit(ball) {
         super.onHit(ball);
         if (!this.active) return;
-        // Optionally, update challenge-specific HUD here
+        this._syncChallengeHud();
         console.log(`Hit! Total: ${this.hits}, Score: ${this.score}`);
     }
 
     onKill(ball) {
         super.onKill(ball);
         if (!this.active) return;
-        // Optionally, update challenge-specific HUD here
+        this._syncChallengeHud();
         console.log(`Kill! Total: ${this.kills}, Score: ${this.score}`);
+    }
+
+    _initChallengeHud() {
+        const overlay = ChallengeMode._ensureOverlay();
+        if (!overlay) return;
+
+        const query = (selector) => overlay.querySelector(selector);
+        this._challengeHudFields = {
+            kills: query('[data-challenge="kills"]'),
+            time: query('[data-challenge="time"]'),
+            percent: query('[data-challenge="percent"]'),
+            barFill: query('[data-challenge="bar-fill"]'),
+            barCursor: query('[data-challenge="bar-cursor"]'),
+            ammo: query('[data-challenge="ammo"]'),
+            ammoValue: query('[data-challenge="ammo-value"]'),
+        };
+    }
+
+    _formatTimeRemaining(seconds) {
+        const total = Math.max(0, Math.ceil(seconds));
+        const minutes = Math.floor(total / 60);
+        const remaining = total % 60;
+        return `${minutes}:${String(remaining).padStart(2, '0')}`;
+    }
+
+    _syncChallengeHud() {
+        if (!this._challengeHudFields) {
+            this._initChallengeHud();
+        }
+        if (!this._challengeHudFields) return;
+
+        const fields = this._challengeHudFields;
+        const shots = Math.max(0, Number(this._shots ?? 0));
+        const percentValue = shots > 0 ? (this.hits / shots) * 100 : 0;
+        const bestScore = LAST_BEST_SCORE;
+        const timeLimit = Math.max(1, Number(this.timeLimit || 0));
+        const elapsedSeconds = Math.max(0, timeLimit - Math.max(0, this.timeElapsed));
+        const barMax = Math.max(1, BAR_MAX_SCORE, bestScore);
+        const fillRatio = Math.min(1, Math.max(0, this.score / barMax));
+        const cursorScore = (bestScore / timeLimit) * elapsedSeconds;
+        const cursorRatio = Math.min(1, Math.max(0, cursorScore / barMax));
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        const deltaSeconds = this._lastHudTime ? Math.max(0, (now - this._lastHudTime) / 1000) : 0;
+        this._lastHudTime = now;
+        const smoothing = 1 - Math.exp(-10 * deltaSeconds);
+        this._cursorProgress += (cursorRatio - this._cursorProgress) * smoothing;
+
+        if (fields.kills) fields.kills.textContent = `Kills ${this.kills}`;
+        if (fields.time) fields.time.textContent = this._formatTimeRemaining(this.timeElapsed);
+        if (fields.percent) fields.percent.textContent = `${percentValue.toFixed(0)}%`;
+        if (fields.barFill) {
+            fields.barFill.style.width = `${(fillRatio * 100).toFixed(2)}%`;
+        }
+        if (fields.barCursor) {
+            fields.barCursor.style.left = `${(this._cursorProgress * 100).toFixed(2)}%`;
+            const cursorAheadOfCurrent = this._cursorProgress > (fillRatio + 0.002);
+            if (cursorAheadOfCurrent) {
+                fields.barCursor.classList.add('cursor-rainbow');
+                fields.barCursor.style.backgroundColor = '';
+            } else {
+                fields.barCursor.classList.remove('cursor-rainbow');
+                fields.barCursor.style.backgroundColor = CURSOR_BEHIND_COLOR;
+            }
+        }
+
+        const bulletState = this._car?.getBulletState ? this._car.getBulletState() : null;
+        const ammoEnabled = Boolean(bulletState?.enabled);
+        const hasFiniteAmmo = Number.isFinite(Number(bulletState?.maxAmmo));
+        const showAmmoHud = ammoEnabled && hasFiniteAmmo;
+        if (fields.ammo) {
+            fields.ammo.classList.toggle('is-hidden', !showAmmoHud);
+            fields.ammo.style.display = showAmmoHud ? '' : 'none';
+        }
+        if (showAmmoHud && fields.ammoValue) {
+            fields.ammoValue.textContent = `${Math.max(0, Math.floor(bulletState?.ammo ?? 0))}`;
+        }
     }
 }
 export default ChallengeMode;

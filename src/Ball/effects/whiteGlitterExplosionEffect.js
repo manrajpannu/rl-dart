@@ -62,7 +62,7 @@ export function playWhiteGlitterExplosionEffect(ball) {
     const origin = new THREE.Vector3();
     ball.getWorldPosition(origin);
 
-    const count = 180;
+    const count = 64;
     const duration = 0.78;
     const positions = new Float32Array(count * 3);
     const velocities = new Float32Array(count * 3);

@@ -8,8 +8,10 @@ import * as THREE from 'three';
 import ChallengeMode from './modes/ChallengeMode';
 import FreeplayMode from './modes/Freeplay';
 import { Ball } from './Ball/Ball';
-import { FlowMovement } from './Ball/Movement/FlowMovement'; 
+import { FlowMovement } from './Ball/Movement/FlowMovement';
 import { ToonSky } from './environment/ToonSky';
+import { CoolMovement } from './Ball/Movement/CoolMovement';
+import { Flow } from 'three/examples/jsm/Addons.js';
 
 interface ModeLike {
   name?: string;
@@ -29,23 +31,35 @@ interface ModeLike {
   update: (dt: number, context?: { boostHeld?: boolean; ballManager?: BallManager }) => void;
   onHit: (ball?: Ball) => void;
   onKill: (ball?: Ball) => void;
+  onMiss: () => void;
 }
 
-interface ModeState {
-  modeName: string;
-  active: boolean;
-  isChallenge: boolean;
-  completed: boolean;
-  hits: number;
-  kills: number;
-  score: number;
-  damageDealt: number;
-  damagePossible: number;
-  shots: number;
-  elapsedSeconds: number;
-  timeLeft: number | null;
-  timeLimit: number | null;
-}
+const buildModeState = (mode: ModeLike, car: Car) => {
+  const isChallenge = mode instanceof ChallengeMode;
+  const isFreeplay = mode instanceof FreeplayMode;
+  const bulletState = car?.getBulletState ? car.getBulletState() : null;
+
+  return {
+    modeName: isChallenge ? 'Challenge' : isFreeplay ? 'Freeplay' : 'Unknown',
+    active: Boolean(mode?.active),
+    isChallenge,
+    completed: Boolean((mode as any)?.completed),
+    hits: Number(mode?.hits ?? 0),
+    kills: Number(mode?.kills ?? 0),
+    score: Number(mode?.score ?? 0),
+    damageDealt: Number((mode as any)?._damageDealt ?? 0),
+    damagePossible: Number((mode as any)?._damagePossible ?? 0),
+    shots: Number((mode as any)?._shots ?? 0),
+    elapsedSeconds: Number((mode as any)?._elapsedSeconds ?? 0),
+    timeLeft: isChallenge ? Number((mode as any)?.timeElapsed ?? 0) : null,
+    timeLimit: isChallenge ? Number((mode as any)?.timeLimit ?? 0) : null,
+    ammoEnabled: Boolean(bulletState?.enabled),
+    ammo: bulletState ? Number(bulletState.ammo) : null,
+    ammoMax: bulletState ? Number(bulletState.maxAmmo) : null,
+  };
+};
+
+type ModeState = ReturnType<typeof buildModeState>;
 
 interface ChallengePreset {
   numBalls: number;
@@ -155,10 +169,11 @@ export class Engine extends THREE.Group {
   private _modeStateListeners: Set<(state: ModeState) => void>;
   private _challengePresets: Record<string, ChallengePreset>;
 
-  /**
+   /**
    * @param renderer Active renderer instance used by UI wiring.
+   * @param options Initialization options, including scenario config.
    */
-  constructor(renderer: THREE.WebGLRenderer) {
+  constructor(renderer: THREE.WebGLRenderer, options: any = {}) {
     super();
 
     this._modeStateListeners = new Set();
@@ -239,50 +254,18 @@ export class Engine extends THREE.Group {
 
     this.controller = new Controller();
 
-    // 5_targets_small
-    // this.currentMode = new ChallengeMode({
-    //   size: 1,
-    //   numBalls: 5,
-    //   holdSliderEnabled: true,
-    //   holdSliderSeconds: 0.5,
-    //   movement: null,
-    //   colors: ['#049ef4'],
-    //   boundary: 20,
-    // });
+    const challengeConfig = options.challengeConfig || {
+      numBalls: 1,
+      health: 3,
+      size: [1.5, 2.0, 2.5],
+      timeLimit: 60,
+      boundary: 30,
+      colors: ['#3459ff', '#04f460', '#f4e404', '#f776fc', '#3cff94', '#3ee9ff'],
+      reticleType: 'cross',
+      reticleColor: '#ff2222',
+    };
 
-    // 5_targets_big
-    this.currentMode = new ChallengeMode({
-      size: [3,5],
-      numBalls: 3,
-      holdSliderEnabled: true,
-      holdSliderSeconds: 0.5,
-      movement: null,
-      killEffect: 'confetti',
-      colors: ['#049ef4', '#04f460', '#f4e404', '#f776fc',],
-      boundary: 40,
-    });
-
-    // 5_targets_tracking_small
-    // this.currentMode = new ChallengeMode({
-    //   size: 1,
-    //   numBalls: 5,
-    //   holdSliderEnabled: true,
-    //   holdSliderSeconds: 1,
-    //   movement: FlowMovement,
-    //   colors: ['#049ef4'],
-    //   boundary: 20,
-    // });
-
-    // 5_targets_tracking_small
-    // this.currentMode = new ChallengeMode({
-    //   size: 2,
-    //   numBalls: 3,
-    //   holdSliderEnabled: true,
-    //   holdSliderSeconds: 1,
-    //   movement: FlowMovement,
-    //   colors: ['#049ef4'],
-    //   boundary: 20,
-    // });
+    this.currentMode = new ChallengeMode(challengeConfig);
 
 
     this.currentMode.start(this.BallManager, { car: this.car });
@@ -336,16 +319,22 @@ export class Engine extends THREE.Group {
       return;
     }
 
-    this.BallManager.update(this.car.getForwardVector(), boostHeld, dt);
+    const bulletState = this.car?.getBulletState ? this.car.getBulletState() : null;
+    const bulletsEnabled = Boolean(bulletState?.enabled);
+    const carUpDir = new THREE.Vector3(0, 1, 0).applyQuaternion(this.car.quaternion).normalize();
+    this.BallManager.update(this.car.getForwardVector(), boostHeld, dt, carUpDir, {
+      bulletsEnabled,
+      carPosition: this.car.position,
+    });
     this.BallManager.updateHealthBar(this.car.getCamera());
 
-    if (!this.BallManager.isIntersecting() && boostHeld) {
-      this.car.playShootSound(dt);
+    const { miss } = this.car.updateBullets(dt, this.BallManager, boostHeld);
+    if (miss) {
+      this.currentMode.onMiss();
     }
 
     this.car.rotate(yaw, pitch, roll, dt);
     this.car.boost(boostHeld, dt);
-
     if (!this.currentClosestBall) {
       this.currentClosestBall = this.BallManager.getClosestBall() ?? null;
     }
@@ -366,6 +355,8 @@ export class Engine extends THREE.Group {
     if (this.currentMode && typeof this.currentMode.stop === 'function') {
       this.currentMode.stop();
     }
+
+    this.car.clearBullets();
 
     if (this.car?.Boost && typeof this.car.Boost.reset === 'function') {
       this.car.Boost.reset();
@@ -430,7 +421,11 @@ export class Engine extends THREE.Group {
   }
 
   restartCurrentMode(): void {
-    this.currentMode.start(this.BallManager, { car: this.car });
+    if (typeof (this.currentMode as any).restart === 'function') {
+      (this.currentMode as any).restart();
+    } else {
+      this.currentMode.start(this.BallManager, { car: this.car });
+    }
     this.currentClosestBall = null;
     this._emitModeState();
   }
@@ -441,25 +436,7 @@ export class Engine extends THREE.Group {
   }
 
   getModeState(): ModeState {
-    const isChallenge = this.currentMode instanceof ChallengeMode;
-    const isFreeplay = this.currentMode instanceof FreeplayMode;
-    const modeName = isChallenge ? 'Challenge' : isFreeplay ? 'Freeplay' : 'Unknown';
-
-    return {
-      modeName,
-      active: Boolean(this.currentMode?.active),
-      isChallenge,
-      completed: Boolean((this.currentMode as any)?.completed),
-      hits: Number(this.currentMode?.hits ?? 0),
-      kills: Number(this.currentMode?.kills ?? 0),
-      score: Number(this.currentMode?.score ?? 0),
-      damageDealt: Number(this.currentMode?._damageDealt ?? 0),
-      damagePossible: Number(this.currentMode?._damagePossible ?? 0),
-      shots: Number(this.currentMode?._shots ?? 0),
-      elapsedSeconds: Number(this.currentMode?._elapsedSeconds ?? 0),
-      timeLeft: isChallenge ? Number(this.currentMode?.timeElapsed ?? 0) : null,
-      timeLimit: isChallenge ? Number(this.currentMode?.timeLimit ?? 0) : null,
-    };
+    return buildModeState(this.currentMode, this.car);
   }
 
   onModeStateChange(listener: (state: ModeState) => void): void {

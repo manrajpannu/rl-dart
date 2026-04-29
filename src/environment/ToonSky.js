@@ -16,11 +16,21 @@ uniform vec3 horizonColor;
 uniform vec3 zenithColor;
 varying vec3 vWorldPos;
 
+// Simple dithering to prevent color banding
+float random(vec2 co) {
+    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
 void main() {
     vec3 viewDir = normalize(vWorldPos - cameraPosition);
     float h = viewDir.y;
     float t = smoothstep(-0.08, 0.72, h);
     vec3 color = mix(horizonColor, zenithColor, t);
+    
+    // Apply a small amount of dither noise
+    float dither = (random(gl_FragCoord.xy) - 0.5) * (1.0 / 255.0);
+    color += dither;
+    
     gl_FragColor = vec4(color, 1.0);
 }
 `;
@@ -81,8 +91,8 @@ export class ToonSky extends THREE.Group {
         this._clouds = [];
         this._radius = radius;
         this._cloudTexture = createToonCloudTexture(256);
-        this._baseHorizon = new THREE.Color(0.17, 0.40, 0.72);
-        this._baseZenith = new THREE.Color(0.70, 0.88, 1.00);
+        this._baseHorizon = new THREE.Color(0.6, 0.6, 0.6);
+        this._baseZenith = new THREE.Color(1, 1, 1);
         this._hueShift = hueShift;
         this._createSkyDome(radius);
         this.setHueShift(hueShift);
@@ -102,6 +112,7 @@ export class ToonSky extends THREE.Group {
             side: THREE.BackSide,
             depthWrite: false,
             fog: false,
+            dithering: true,
         });
         this._skyMaterial = material;
         const dome = new THREE.Mesh(geometry, material);

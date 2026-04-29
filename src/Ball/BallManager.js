@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Ball } from './Ball';
+import { StripedBall } from './StripedBall.js';
 import { CollisionSystem } from './CollisionSystem';
 
 /**
@@ -161,10 +162,12 @@ export class BallManager extends THREE.Group {
      * @param {number} size
      * @param {any} movementClass
      * @param {Object} healthObj
+     * @param {Object} reticleObj
      */
-    createBall(position, size, movementClass, healthObj) {
+    createBall(position, size, movementClass, healthObj, reticleObj = null, appearanceObj = null) {
         const movementInstance = movementClass ? new movementClass() : null;
-        const ball = new Ball(position, size, movementInstance, healthObj);
+        const BallType = appearanceObj?.isStriped ? StripedBall : Ball;
+        const ball = new BallType(position, size, movementInstance, healthObj, reticleObj, appearanceObj);
         this.balls.push(ball);
         this.add(ball);
         return ball;
@@ -193,7 +196,9 @@ export class BallManager extends THREE.Group {
         if (typeof ball.respawn === 'function') ball.respawn();
     }
 
-    update(forwardVector, boostHeld, dt) {
+    update(forwardVector, boostHeld, dt, upDir = null, options = {}) {
+        const bulletsEnabled = Boolean(options?.bulletsEnabled);
+        const carPosition = options?.carPosition ?? null;
         let hit = false;
         let killedBall = null;
 
@@ -203,7 +208,7 @@ export class BallManager extends THREE.Group {
         this.lastFirstIntersectedBall = firstIntersectedBall;
 
         this.balls.forEach(ball => {
-            ball.update(forwardVector, boostHeld, dt, null, ball === firstIntersectedBall);
+            ball.update(forwardVector, boostHeld, dt, carPosition, ball === firstIntersectedBall, upDir, bulletsEnabled);
             if (ball.isHit()) hit = true;
             if (!killedBall && ball.isKilled()) killedBall = ball;
         });

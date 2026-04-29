@@ -4,7 +4,7 @@ import { CarModel, CAR_MODELS } from './CarModel.js';
 import { physics } from '../physicsConfig.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
 import { BOOST_TYPES, createBoost } from './boost/BoostFactory.js';
-import { withAssetBase } from '../assetBase.js';
+import Gun from './Gun';
 
 type BoostInstance = {
   emitParticles: (position: THREE.Vector3, quaternion: THREE.Quaternion, dt: number) => void;
@@ -39,6 +39,7 @@ export class Car extends THREE.Group {
 
   camera: THREE.PerspectiveCamera;
   LookAt: THREE.Vector3;
+  gun: Gun;
 
   forwardArrow: THREE.ArrowHelper;
   private _rotationLine: THREE.Line;
@@ -56,9 +57,6 @@ export class Car extends THREE.Group {
   lastInertiaY: number;
   lastInertiaZ: number;
 
-  private _shootSounds: HTMLAudioElement[];
-  private _shootSoundIndex: number;
-  shootAccumulator: number;
   dps: number;
 
   /**
@@ -120,14 +118,10 @@ export class Car extends THREE.Group {
     this.lastInertiaY = 0;
     this.lastInertiaZ = 0;
 
-    this._shootSounds = Array.from({ length: 3 }, () => {
-      const a = new Audio(withAssetBase('sounds/shoot.ogg'));
-      a.volume = 0.01;
-      return a;
-    });
-    this._shootSoundIndex = 0;
-    this.shootAccumulator = 0;
     this.dps = dps;
+
+    this.gun = new Gun(scene, this, dps);
+    this.add(this.gun as unknown as THREE.Object3D);
 
     this.loadCarModel(CAR_MODELS[physics.car.body]);
   }
@@ -296,6 +290,46 @@ export class Car extends THREE.Group {
     this.Boost.updateParticles(dt);
   }
 
+  configureBullets(options: Record<string, unknown> = {}): void {
+    this.gun.configure(options);
+  }
+
+  setBulletVisualsEnabled(enabled: boolean): void {
+    this.gun.setVisualsEnabled(enabled);
+  }
+
+  showBulletVisuals(): void {
+    this.setBulletVisualsEnabled(true);
+  }
+
+  hideBulletVisuals(): void {
+    this.setBulletVisualsEnabled(false);
+  }
+
+  enableBullets(options: Record<string, unknown> = {}): void {
+    this.gun.enable(options);
+  }
+
+  disableBullets(): void {
+    this.gun.disable();
+  }
+
+  setBulletsEnabled(enabled: boolean): void {
+    this.gun.setEnabled(enabled);
+  }
+
+  getBulletState(): { enabled: boolean; ammo: number; maxAmmo: number } {
+    return this.gun.getState();
+  }
+
+  updateBullets(dt: number, ballManager: any, fireHeld: boolean): { fired: boolean; miss: boolean } {
+    return this.gun.update(dt, ballManager, fireHeld);
+  }
+
+  reloadBullets(playSound = false): void {
+    this.gun.reloadNow(playSound);
+  }
+
   /**
    * Switches boost implementation at runtime.
    */
@@ -428,6 +462,10 @@ export class Car extends THREE.Group {
     }
   }
 
+  clearBullets(): void {
+    this.gun.clearBullets();
+  }
+
   /**
    * Smoothly updates chase camera position/look target.
    */
@@ -520,20 +558,10 @@ export class Car extends THREE.Group {
   }
 
   playShootSound(dt: number): void {
-    if (this.shootAccumulator > 0) {
-      this.shootAccumulator -= dt;
-    }
-    if (this.shootAccumulator <= 0) {
-      const shootSound = this._shootSounds[this._shootSoundIndex];
-      shootSound.currentTime = 0;
-      const playPromise = shootSound.play();
-      if (playPromise && typeof playPromise.catch === 'function') {
-        playPromise.catch(() => {
-          // Ignore playback errors (autoplay/media support) and keep simulation running.
-        });
-      }
-      this._shootSoundIndex = (this._shootSoundIndex + 1) % this._shootSounds.length;
-      this.shootAccumulator = 1 / this.dps;
-    }
+    this.gun.playDefaultShootSound(dt);
+  }
+
+  playShootSoundOnce(): void {
+    this.gun.playDefaultShootSoundOnce();
   }
 }

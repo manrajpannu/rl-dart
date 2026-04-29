@@ -35,38 +35,38 @@ export function createUI(car, controller,  ball, map, renderer, engine) {
     const gui = new GUI();
 
     // World Folder
-    const worldFolder = gui.addFolder('World');
-    worldFolder.add(physics.world, 'gameSpeed', 0, 1).name("Game Speed");
-    worldFolder.add({ youtuberMode: false }, 'youtuberMode').name('Youtuber Mode').onChange((mode) => {
-        youtuberMode(mode, map, renderer);
-    });
+    // const worldFolder = gui.addFolder('World');
+    // worldFolder.add(physics.world, 'gameSpeed', 0, 1).name("Game Speed");
+    // worldFolder.add({ youtuberMode: false }, 'youtuberMode').name('Youtuber Mode').onChange((mode) => {
+    //     youtuberMode(mode, map, renderer);
+    // });
 
     // Controller Folder
-    const controllerFolder = gui.addFolder('Controller');
+    // const controllerFolder = gui.addFolder('Controller');
     // Deadzone Canvas Toggle
    
-    controllerFolder.add(controller, 'airRollLeftButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Left Button');
-    controllerFolder.add(controller, 'airRollRightButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Right Button');
-    controllerFolder.add(controller, 'airRollFreeButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Free Air Roll Button');
-    controllerFolder.add(controller, 'boostButton', { 'LB': 4, 'RB': 5, 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Boost Button');
-    const deadzoneCanvas = document.getElementById('deadzone');
-    deadzoneCanvas.style.display = 'none';
-    const deadzoneState = { showDeadzone: false };
-    controllerFolder.add(deadzoneState, 'showDeadzone').name('Show Deadzone').onChange((show) => {
-        deadzoneCanvas.style.display = show ? 'block' : 'none';
-    });
-    controllerFolder.add(controller, 'controllerDeadzone', 0, 1).name('Deadzone Size');
-    controllerFolder.add(controller, 'controllerDeadzoneType', ['cross', 'square', 'circle']).name('Deadzone Type');
-    controllerFolder.add(controller, 'controllerSensitivity', 0.1, 5).name('Sensitivity');
+    // controllerFolder.add(controller, 'airRollLeftButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Left Button');
+    // controllerFolder.add(controller, 'airRollRightButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Air Roll Right Button');
+    // controllerFolder.add(controller, 'airRollFreeButton', { 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LB': 4, 'RB': 5, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Free Air Roll Button');
+    // controllerFolder.add(controller, 'boostButton', { 'LB': 4, 'RB': 5, 'A': 0, 'B': 1, 'X': 2, 'Y': 3, 'LT': 6, 'RT': 7, 'Back': 8, 'Start': 9, 'LStick': 10, 'RStick': 11, 'DPadUp': 12, 'DPadDown': 13, 'DPadLeft': 14, 'DPadRight': 15 }).name('Boost Button');
+    // const deadzoneCanvas = document.getElementById('deadzone');
+    // deadzoneCanvas.style.display = 'none';
+    // const deadzoneState = { showDeadzone: false };
+    // controllerFolder.add(deadzoneState, 'showDeadzone').name('Show Deadzone').onChange((show) => {
+    //     deadzoneCanvas.style.display = show ? 'block' : 'none';
+    // });
+    // controllerFolder.add(controller, 'controllerDeadzone', 0, 1).name('Deadzone Size');
+    // controllerFolder.add(controller, 'controllerDeadzoneType', ['cross', 'square', 'circle']).name('Deadzone Type');
+    // controllerFolder.add(controller, 'controllerSensitivity', 0.1, 5).name('Sensitivity');
 
 
-    // Car Folder
-    const carFolder = gui.addFolder('Car');
+    // // Car Folder
+    // const carFolder = gui.addFolder('Car');
 
-    carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.changeCarModel(modelKey)));
-    carFolder.add(car, 'boostType', Object.keys(BOOST_TYPES)).name('Boost Type').onChange((type) => {
-        car.setBoostType(type);
-    });
+    // carFolder.add(physics.car, 'body', Object.keys(CAR_MODELS)).name('Car Body').onChange( (modelKey) => console.log(car.changeCarModel(modelKey)));
+    // carFolder.add(car, 'boostType', Object.keys(BOOST_TYPES)).name('Boost Type').onChange((type) => {
+    //     car.setBoostType(type);
+    // });
     // Visuals Folder
     // const visualsFolder = carFolder.addFolder('Visuals');
     // visualsFolder.add( car, 'showLine').name('Show Forward Axis').onChange( () => car.updateVisibility());

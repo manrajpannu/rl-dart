@@ -1,0 +1,14 @@
+import { RETICLE_VERTEX_SHADER } from './vertex.js';
+import { CROSS_RETICLE_FRAGMENT_SHADER } from './cross.js';
+import { X_RETICLE_FRAGMENT_SHADER } from './x.js';
+import { RING_RETICLE_FRAGMENT_SHADER } from './ring.js';
+import { BOX_RETICLE_FRAGMENT_SHADER } from './box.js';
+
+const RETICLE_SHADERS = {
+    cross: CROSS_RETICLE_FRAGMENT_SHADER,
+    x: X_RETICLE_FRAGMENT_SHADER,
+    ring: RING_RETICLE_FRAGMENT_SHADER,
+    box: BOX_RETICLE_FRAGMENT_SHADER,
+};
+
+export { RETICLE_SHADERS, RETICLE_VERTEX_SHADER };
