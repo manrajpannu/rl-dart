@@ -16,6 +16,14 @@
     <link rel="icon" type="image/x-icon" href="./public/images/favicon.ico">
   </head>
   <body>
+    <div id="deprecation-modal" style="display: flex; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); z-index: 100000; align-items: center; justify-content: center; backdrop-filter: blur(15px);">
+      <div style="background: linear-gradient(145deg, rgba(20, 20, 25, 0.95), rgba(30, 30, 40, 0.95)); padding: 3rem; border-radius: 24px; text-align: center; max-width: 600px; width: 90%; border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 30px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05); color: #fff; font-family: 'Manrope', 'Segoe UI', sans-serif;">
+        <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem; background: linear-gradient(to right, #ff6b6b, #ff8e8e); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Site Deprecated</h1>
+        <p style="font-size: 1.2rem; color: #a0aab5; margin-bottom: 2.5rem; line-height: 1.6;">This site is deprecated. Please move to the new site at airdribble.net.</p>
+        <a href="https://airdribble.net" style="display: inline-block; background: #49aeff; color: #fff; text-decoration: none; padding: 1rem 2.5rem; border-radius: 12px; font-size: 1.2rem; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 8px 20px rgba(73, 174, 255, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 12px 24px rgba(73, 174, 255, 0.4)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 8px 20px rgba(73, 174, 255, 0.3)'">Go to airdribble.net</a>
+        <button onclick="document.getElementById('deprecation-modal').style.display='none'" style="display: block; margin: 2rem auto 0; background: transparent; border: none; color: #6c757d; font-size: 0.9rem; cursor: pointer; text-decoration: underline; padding: 0.5rem; transition: color 0.2s;" onmouseover="this.style.color='#a0aab5'" onmouseout="this.style.color='#6c757d'">Continue to legacy site</button>
+      </div>
+    </div>
     <div id="intro-modal">
       <div class="intro-modal-content modal-theme">
         <div class="intro-title modal-theme">welcome to rl-dart</div>
