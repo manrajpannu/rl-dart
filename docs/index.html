@@ -11,12 +11,21 @@
       gtag('config', 'G-KGCWSW6HHE');
     </script>
     <meta charset="utf-8">
-    <title>rl-dart</title>
-    <link rel="icon" type="image/x-icon" href="/rl-dart/assets/favicon-green-ZpSBZNLu.ico">
-    <script type="module" crossorigin src="/rl-dart/assets/main-RvPuavzY.js"></script>
-    <link rel="stylesheet" crossorigin href="/rl-dart/assets/main-BloY8anP.css">
+    <title>rl-dart</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="./public/images/favicon-green.ico">
   </head>
   <body>
+    <div id="deprecation-modal" style="display: flex; flex-direction: column; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(20,20,20,0.96); z-index: 10005; justify-content: center; align-items: center; font-family: 'Roboto Mono', 'Consolas', monospace; text-transform: lowercase;">
+      <div class="intro-modal-content modal-theme" style="margin: 0; text-align: center; border-color: #ff4444;">
+        <div class="intro-title modal-theme" style="color: #ff4444; font-size: 1.4rem;">site deprecated</div>
+        <div class="intro-desc modal-theme" style="font-size: 1rem; margin-bottom: 2em;">
+          this version of the site is no longer maintained.<br><br>
+          you will be redirected to <a href="https://airdribble.net" style="color: #44ccff; text-decoration: none; font-weight: bold;">airdribble.net</a> in <span id="redirect-timer" style="color: #fff; font-weight: bold; font-size: 1.2rem;">5</span> seconds.
+        </div>
+        <button id="cancel-redirect" class="intro-close modal-theme" style="border-color: #ff4444; color: #ff4444;">cancel redirect</button>
+      </div>
+    </div>
     <div id="intro-modal">
       <div class="intro-modal-content modal-theme">
         <div class="intro-title modal-theme">welcome to rl-dart</div>
@@ -51,12 +60,40 @@
       </a>
     </header>
 
-    <div id="three-container"></div>  
+    <div id="three-container"></div>  
+    <script type="module" src="./src/main.js"></script>
       <canvas id="hud"  width="120" height="120" class="idealAdjustment">
       </canvas>
     <canvas id="deadzone"  width="500" height="500" class="deadzone">
       </canvas>
     <script>
+      // Deprecation Notice Logic
+      let redirectCountdown = 5;
+      let redirectInterval;
+      
+      const deprecationModal = document.getElementById('deprecation-modal');
+      const timerElement = document.getElementById('redirect-timer');
+      const cancelBtn = document.getElementById('cancel-redirect');
+
+      if (!localStorage.getItem('rlDartRedirectCancelled')) {
+        redirectInterval = setInterval(() => {
+          redirectCountdown--;
+          timerElement.innerText = redirectCountdown;
+          if (redirectCountdown <= 0) {
+            clearInterval(redirectInterval);
+            window.location.href = 'https://airdribble.net';
+          }
+        }, 1000);
+      } else {
+        deprecationModal.style.display = 'none';
+      }
+
+      cancelBtn.onclick = function() {
+        clearInterval(redirectInterval);
+        deprecationModal.style.display = 'none';
+        localStorage.setItem('rlDartRedirectCancelled', '1');
+      };
+
       // Only show modal on first visit
       if (localStorage.getItem('rlDartIntroSeen2')) {
         document.getElementById('intro-modal').style.display = 'none';
