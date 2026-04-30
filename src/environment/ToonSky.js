@@ -86,17 +86,36 @@ function createToonCloudTexture(size = 256) {
  */
 
 export class ToonSky extends THREE.Group {
-    constructor({ radius = 900, cloudCount = 26, hueShift = 0 } = {}) {
+    constructor({ radius = 900, cloudCount = 26, hueShift = 0, darkMode = false } = {}) {
         super();
         this._clouds = [];
         this._radius = radius;
         this._cloudTexture = createToonCloudTexture(256);
-        this._baseHorizon = new THREE.Color(0.6, 0.6, 0.6);
-        this._baseZenith = new THREE.Color(1, 1, 1);
+        this._baseHorizon = new THREE.Color();
+        this._baseZenith = new THREE.Color();
         this._hueShift = hueShift;
+        this._darkMode = darkMode;
+
+        this.setDarkMode(darkMode);
         this._createSkyDome(radius);
-        this.setHueShift(hueShift);
         // this._createCloudLayer(cloudCount, radius);
+    }
+
+    setDarkMode(isDark) {
+        this._darkMode = isDark;
+        if (isDark) {
+            this._baseHorizon.set(0x000000); // Black Horizon
+            this._baseZenith.set(0x525252);  // Dark Grey Zenith
+        } else {
+            this._baseHorizon.set(0xCCCCCC); // Light Grey Horizon (approx 0.6)
+            this._baseZenith.set(0xffffff);  // White Zenith
+        }
+
+        if (this._skyMaterial) {
+            this._skyMaterial.uniforms.horizonColor.value.copy(this._baseHorizon);
+            this._skyMaterial.uniforms.zenithColor.value.copy(this._baseZenith);
+            this.setHueShift(this._hueShift);
+        }
     }
 
     _createSkyDome(radius) {
@@ -137,9 +156,10 @@ export class ToonSky extends THREE.Group {
         horizon.setHSL(horizonHsl.h, horizonHsl.s, horizonHsl.l);
         zenith.setHSL(zenithHsl.h, zenithHsl.s, zenithHsl.l);
 
-        this._skyMaterial.uniforms.horizonColor.value = horizon;
-        this._skyMaterial.uniforms.zenithColor.value = zenith;
-        this._skyMaterial.needsUpdate = true;
+        if (this._skyMaterial) {
+            this._skyMaterial.uniforms.horizonColor.value.copy(horizon);
+            this._skyMaterial.uniforms.zenithColor.value.copy(zenith);
+        }
     }
 
     _createCloudLayer(count, radius) {

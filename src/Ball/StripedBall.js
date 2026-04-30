@@ -23,9 +23,17 @@ void main() {
     vec3 axis = normalize(stripeAxis);
     float axisDot = dot(n, axis);
     float angle = acos(clamp(axisDot, -1.0, 1.0));
-    float wave = abs(sin(angle * stripeCount + time * stripeScrollSpeed));
-    float stripe = smoothstep(1.0 - stripeWidth, 1.0 - stripeWidth + stripeSoftness, wave);
-    if (stripe <= 0.0) discard;
+    
+    float v = angle * stripeCount + time * stripeScrollSpeed;
+    float wave = abs(sin(v));
+    
+    // Anti-aliasing: use fwidth to determine the transition width in screen space.
+    // This removes jaggies without making the edges look "feathered" or blurry at a distance.
+    float grad = fwidth(wave);
+    float edge = 1.0 - stripeWidth;
+    float stripe = smoothstep(edge - grad, edge + grad, wave);
+    
+    if (stripe <= 0.001) discard;
     gl_FragColor = vec4(vec3(1.0), stripe * stripeOpacity);
 }`;
 
@@ -51,7 +59,7 @@ export class StripedBall extends Ball {
             stripeAxis: { value: new THREE.Vector3(1, 0, 0) },
             stripeCount: { value: 13.0 },
             stripeWidth: { value: 0.14 },
-            stripeSoftness: { value: 0.002 },
+            stripeSoftness: { value: 0.004 },
             stripeOpacity: { value: 1.0 },
             time: { value: 0 },
             stripeScrollSpeed: { value: 0.9 },
@@ -63,6 +71,9 @@ export class StripedBall extends Ball {
             uniforms: this.stripeUniforms,
             transparent: true,
             depthWrite: false,
+            extensions: {
+                derivatives: true
+            }
         });
 
         this.stripeMesh = new THREE.Mesh(
@@ -72,6 +83,16 @@ export class StripedBall extends Ball {
         this.stripeMesh.renderOrder = 9;
         this.stripeMesh.visible = true;
         this.add(this.stripeMesh);
+        
+        // Remove the default indicator sphere for a cleaner striped appearance
+        if (this.indicatorSphere) {
+            this.remove(this.indicatorSphere);
+            this.indicatorSphere.geometry.dispose();
+            if (this.indicatorSphere.material) {
+                this.indicatorSphere.material.dispose();
+            }
+            this.indicatorSphere = null;
+        }
 
         // Ensure all striped/base geometries and hitbox are synchronized to the requested size.
         this.setRadius(normalizedRadius);

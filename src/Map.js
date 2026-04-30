@@ -1,37 +1,28 @@
 import * as THREE from 'three';
 
-const planeMat = new THREE.ShaderMaterial({
-    side: THREE.DoubleSide,
-    transparent: false,
-    uniforms: {
-        uColorA: { value: new THREE.Color('rgb(255, 255, 255)') },
-        uColorB: { value: new THREE.Color('rgb(255, 191, 223)') },
-        uChecks: { value: 25.0 },
-    },
-    vertexShader: `
-        varying vec2 vUv;
+const VERTEX_SHADER = `
+    varying vec2 vUv;
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+`;
 
-        void main() {
-            vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-    `,
-    fragmentShader: `
-        varying vec2 vUv;
-        uniform vec3 uColorA;
-        uniform vec3 uColorB;
-        uniform float uChecks;
+const FRAGMENT_SHADER = `
+    varying vec2 vUv;
+    uniform vec3 uColorA;
+    uniform vec3 uColorB;
+    uniform float uChecks;
 
-        void main() {
-            vec2 gridUv = vUv * uChecks;
-            vec2 cell = floor(gridUv);
-            float checker = mod(cell.x + cell.y, 2.0);
-            vec3 color = mix(uColorA, uColorB, checker);
+    void main() {
+        vec2 gridUv = vUv * uChecks;
+        vec2 cell = floor(gridUv);
+        float checker = mod(cell.x + cell.y, 2.0);
+        vec3 color = mix(uColorA, uColorB, checker);
 
-            gl_FragColor = vec4(color, 1.0);
-        }
-    `,
-});
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
 
 /**
  * Training ground map plane.
@@ -42,6 +33,19 @@ export class Map extends THREE.Group {
     constructor(planeSize = 160) {
         super();
         this.planeSize = planeSize;
+        this._isDark = false;
+        
+        this.material = new THREE.ShaderMaterial({
+            side: THREE.DoubleSide,
+            transparent: false,
+            uniforms: {
+                uColorA: { value: new THREE.Color(0xffffff) },
+                uColorB: { value: new THREE.Color(0xffbfdf) },
+                uChecks: { value: 25.0 },
+            },
+            vertexShader: VERTEX_SHADER,
+            fragmentShader: FRAGMENT_SHADER,
+        });
     }
 
     /**
@@ -49,12 +53,20 @@ export class Map extends THREE.Group {
      */
     gen() {
         const planeGeo = new THREE.PlaneGeometry( this.planeSize, this.planeSize );
-
-        const mesh = new THREE.Mesh( planeGeo, planeMat );
+        const mesh = new THREE.Mesh( planeGeo, this.material );
         mesh.rotation.x = Math.PI * - .5;
         mesh.receiveShadow = true;
         this.add( mesh );
     }
-}
 
- 
+    setDarkMode(isDark) {
+        this._isDark = isDark;
+        if (isDark) {
+            this.material.uniforms.uColorA.value.set(0x0a0a0a);
+            this.material.uniforms.uColorB.value.set(0x1a1a1a);
+        } else {
+            this.material.uniforms.uColorA.value.set(0xffffff);
+            this.material.uniforms.uColorB.value.set(0xffbfdf);
+        }
+    }
+}

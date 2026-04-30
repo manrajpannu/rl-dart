@@ -56,18 +56,14 @@ class ChallengeMode extends FreeplayMode {
             </style>
             <div class="challenge-hud__top-stack absolute inset-x-0 top-[50px] mx-auto grid w-[min(520px,calc(100vw-24px))] gap-1">
                     <div class="challenge-hud__top grid grid-cols-[1fr_minmax(160px,1.1fr)_1fr] items-center gap-2.5">
-                        <div class="challenge-hud__item challenge-hud__item--left bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center text-[16px] font-bold tabular-nums whitespace-nowrap uppercase tracking-[0.12em] [clip-path:polygon(8%_0,100%_0,92%_100%,0_100%)]" data-challenge="kills">Kills 0</div>
-                        <div class="challenge-hud__item challenge-hud__item--center bg-[rgba(0,0,0,0.3)] px-5 py-3 text-center text-[clamp(44px,7vw,78px)] leading-none font-bold tabular-nums whitespace-nowrap tracking-[0.03em] uppercase [clip-path:polygon(4%_0,96%_0,100%_100%,0_100%)]" data-challenge="time">0:00</div>
-                        <div class="challenge-hud__item challenge-hud__item--right bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center text-[16px] font-bold tabular-nums whitespace-nowrap uppercase tracking-[0.12em] [clip-path:polygon(0_0,92%_0,100%_100%,8%_100%)]" data-challenge="percent">0%</div>
+                        <div class="challenge-hud__item challenge-hud__item--left bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center text-[16px] font-bold tabular-nums whitespace-nowrap uppercase tracking-[0.12em] rounded-l-lg" data-challenge="kills">Kills 0</div>
+                        <div class="challenge-hud__item challenge-hud__item--center bg-[rgba(0,0,0,0.3)] px-5 py-3 text-center text-[clamp(44px,7vw,78px)] leading-none font-bold tabular-nums whitespace-nowrap tracking-[0.03em] uppercase" data-challenge="time">0:00</div>
+                        <div class="challenge-hud__item challenge-hud__item--right bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center text-[16px] font-bold tabular-nums whitespace-nowrap uppercase tracking-[0.12em] rounded-r-lg" data-challenge="percent">0%</div>
                     </div>
-                    <div class="challenge-hud__bar relative h-4 overflow-hidden bg-[rgba(0,0,0,0.3)] [clip-path:polygon(0_0,100%_0,92%_100%,8%_100%)]" aria-hidden="true">
+                    <div class="challenge-hud__bar relative h-4 overflow-hidden bg-[rgba(0,0,0,0.3)] rounded-full" aria-hidden="true">
                         <div class="challenge-hud__bar-fill absolute inset-y-0 left-0 w-0 bg-white" data-challenge="bar-fill"></div>
                         <div class="challenge-hud__bar-cursor absolute left-0 top-1/2 size-4 -translate-y-1/2 rounded-full bg-white transition-[left] duration-100 linear" data-challenge="bar-cursor"></div>
                     </div>
-                </div>
-                <div class="challenge-hud__ammo is-hidden absolute inset-x-0 bottom-10 mx-auto inline-flex w-fit min-w-[220px] items-center justify-center gap-3 bg-[rgba(0,0,0,0.3)] px-5 py-3 text-center text-[20px] font-bold uppercase tracking-[0.12em] [clip-path:polygon(14%_0,86%_0,100%_100%,0_100%)]" data-challenge="ammo">
-                    <span class="challenge-hud__ammo-icon inline-block size-4 rounded-full bg-white" aria-hidden="true"></span>
-                    <span class="challenge-hud__ammo-text font-bold uppercase" data-challenge="ammo-value">0</span>
                 </div>`;
 
         let overlay = document.getElementById('challenge-hud');
@@ -251,8 +247,6 @@ class ChallengeMode extends FreeplayMode {
             percent: query('[data-challenge="percent"]'),
             barFill: query('[data-challenge="bar-fill"]'),
             barCursor: query('[data-challenge="bar-cursor"]'),
-            ammo: query('[data-challenge="ammo"]'),
-            ammoValue: query('[data-challenge="ammo-value"]'),
         };
     }
 
@@ -301,18 +295,6 @@ class ChallengeMode extends FreeplayMode {
                 fields.barCursor.classList.remove('cursor-rainbow');
                 fields.barCursor.style.backgroundColor = CURSOR_BEHIND_COLOR;
             }
-        }
-
-        const bulletState = this._car?.getBulletState ? this._car.getBulletState() : null;
-        const ammoEnabled = Boolean(bulletState?.enabled);
-        const hasFiniteAmmo = Number.isFinite(Number(bulletState?.maxAmmo));
-        const showAmmoHud = ammoEnabled && hasFiniteAmmo;
-        if (fields.ammo) {
-            fields.ammo.classList.toggle('is-hidden', !showAmmoHud);
-            fields.ammo.style.display = showAmmoHud ? '' : 'none';
-        }
-        if (showAmmoHud && fields.ammoValue) {
-            fields.ammoValue.textContent = `${Math.max(0, Math.floor(bulletState?.ammo ?? 0))}`;
         }
     }
 }

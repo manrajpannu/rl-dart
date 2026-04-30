@@ -6,8 +6,8 @@ export class HealthBar extends THREE.Group {
         this.width = width;
         this.height = height;
         this.radius = radius;
-        this.squirclePower = 6;
-        this.cornerRadiusRatio = 0.3;
+        this.squirclePower = 2; // n=2 is a standard circle
+        this.cornerRadiusRatio = 1.0; // Maximum roundedness
         this.maxHealth = maxHealth;
         this.health = health;
 
@@ -40,7 +40,8 @@ export class HealthBar extends THREE.Group {
             height,
             this.squirclePower,
             this.cornerRadiusRatio,
-            0xff0000
+            0xff0000,
+            health >= maxHealth // roundRight = true if full
         );
         this.fgMesh.position.z = 0.01; // Slightly in front
         this.add(this.fgMesh);
@@ -55,7 +56,7 @@ export class HealthBar extends THREE.Group {
         this.scale.set(scale, scale, scale);
     }
 
-    _createSquircleBarShape(width, height, power = 6, cornerRadiusRatio = 0.3, cornerSegments = 28) {
+    _createSquircleBarShape(width, height, power = 2, cornerRadiusRatio = 1.0, cornerSegments = 28, roundRight = true) {
         const shape = new THREE.Shape();
         const safeWidth = Math.max(0.0001, width);
         const safeHeight = Math.max(0.0001, height);
@@ -66,7 +67,6 @@ export class HealthBar extends THREE.Group {
             Math.min(safeHeight * cornerRadiusRatio, halfW, halfH)
         );
         const innerHalfW = Math.max(0, halfW - cornerRadius);
-        const n = Math.max(2.1, power);
         let started = false;
 
         const appendCorner = (centerX, centerY, startAngle, endAngle) => {
@@ -77,10 +77,8 @@ export class HealthBar extends THREE.Group {
 
                 const t = i / cornerSegments;
                 const angle = startAngle + (endAngle - startAngle) * t;
-                const cosA = Math.cos(angle);
-                const sinA = Math.sin(angle);
-                const x = centerX + cornerRadius * Math.sign(cosA) * Math.pow(Math.abs(cosA), 2 / n);
-                const y = centerY + cornerRadius * Math.sign(sinA) * Math.pow(Math.abs(sinA), 2 / n);
+                const x = centerX + cornerRadius * Math.cos(angle);
+                const y = centerY + cornerRadius * Math.sin(angle);
 
                 if (!started) {
                     shape.moveTo(x, y);
@@ -91,17 +89,32 @@ export class HealthBar extends THREE.Group {
             }
         };
 
-        appendCorner(-innerHalfW, halfH - cornerRadius, Math.PI, Math.PI / 2); // top-left
-        appendCorner(innerHalfW, halfH - cornerRadius, Math.PI / 2, 0); // top-right
-        appendCorner(innerHalfW, -halfH + cornerRadius, 0, -Math.PI / 2); // bottom-right
-        appendCorner(-innerHalfW, -halfH + cornerRadius, -Math.PI / 2, -Math.PI); // bottom-left
+        // Top-left
+        appendCorner(-innerHalfW, halfH - cornerRadius, Math.PI, Math.PI / 2); 
+        
+        // Top-right
+        if (roundRight) {
+            appendCorner(innerHalfW, halfH - cornerRadius, Math.PI / 2, 0);
+        } else {
+            shape.lineTo(halfW, halfH);
+        }
+
+        // Bottom-right
+        if (roundRight) {
+            appendCorner(innerHalfW, -halfH + cornerRadius, 0, -Math.PI / 2);
+        } else {
+            shape.lineTo(halfW, -halfH);
+        }
+
+        // Bottom-left
+        appendCorner(-innerHalfW, -halfH + cornerRadius, -Math.PI / 2, -Math.PI); 
 
         shape.closePath();
         return shape;
     }
 
-    _createSquircleMesh(width, height, power, cornerRadiusRatio, color) {
-        const shape = this._createSquircleBarShape(width, height, power, cornerRadiusRatio);
+    _createSquircleMesh(width, height, power, cornerRadiusRatio, color, roundRight = true) {
+        const shape = this._createSquircleBarShape(width, height, power, cornerRadiusRatio, 28, roundRight);
         const geometry = new THREE.ShapeGeometry(shape, 48);
         const material = new THREE.MeshBasicMaterial({ color });
         return new THREE.Mesh(geometry, material);
@@ -134,7 +147,9 @@ export class HealthBar extends THREE.Group {
                 fgWidth,
                 this.height,
                 this.squirclePower,
-                this.cornerRadiusRatio
+                this.cornerRadiusRatio,
+                28,
+                healthRatio >= 1.0 // roundRight = true if full
             ),
             48
         );

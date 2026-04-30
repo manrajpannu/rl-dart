@@ -83,15 +83,15 @@ export class Ball extends THREE.Group {
         this.healthBar.position.set(0, radius + 0.5, 0);
         this.add(this.healthBar);
         this.healthBar.visible = false;
-        
+
         // SFX: Preload via SoundManager for zero-latency Web Audio playback
         soundManager.loadSound('kill', 'sounds/new sounds/death.mp3');
         soundManager.loadSound('hit', 'sounds/hit.ogg');
-        
+
         this.hitAccumulator = 0;
 
         // Outer transparent indicatorSphere for visual effect
-        const geometry = new THREE.SphereGeometry(radius + 0.01, 128, 128);
+        const geometry = new THREE.SphereGeometry(radius + 0.01, 48, 48);
         const material = new THREE.MeshBasicMaterial({
             color: this.idleGlowColor,
             transparent: true,
@@ -116,7 +116,7 @@ export class Ball extends THREE.Group {
         // });
 
         // Use a simple blue sphere as the ball
-        const ballGeometry = new THREE.SphereGeometry(this.radius, 128, 128);
+        const ballGeometry = new THREE.SphereGeometry(this.radius, 48, 48);
         // Default material
         this.defaultBallMaterial = new THREE.MeshStandardMaterial({
             color: 0x049ef4,
@@ -148,7 +148,7 @@ export class Ball extends THREE.Group {
         this.onHoverEffectType = this._resolveHoverEffect(appearanceConfig.onHoverEffect);
 
         // crosshair (curved shader over the sphere surface)
-        const crossGeom = new THREE.SphereGeometry(this.radius + 0.02, 128, 128);
+        const crossGeom = new THREE.SphereGeometry(this.radius + 0.02, 72, 72);
         this.crosshairUniforms = {
             color: { value: this.reticleColor },
             barThickness: { value: 0.022 },
@@ -185,9 +185,14 @@ export class Ball extends THREE.Group {
 
         this.negativeColor();
 
-
+        // Pre-allocated scratch vectors to avoid per-frame GC pressure
+        this._scratchVec3A = new THREE.Vector3();
+        this._scratchVec3B = new THREE.Vector3();
+        this._scratchVec3C = new THREE.Vector3();
+        this._scratchVec3D = new THREE.Vector3();
+        this._scratchQuat = new THREE.Quaternion();
     }
-    
+
     /**
      * Per-frame update.
      *
@@ -201,7 +206,7 @@ export class Ball extends THREE.Group {
           * @param {THREE.Vector3|null} upDir Optional car up direction for crosshair rotation.
           * @param {boolean} [bulletsEnabled=false] When true, non-slider balls should only be damaged by bullets.
      */
-        update(ray, boost, dt, collisionContext = null, canBeHit = true, upDir = null, bulletsEnabled = false) {
+    update(ray, boost, dt, collisionContext = null, canBeHit = true, upDir = null, bulletsEnabled = false) {
         if (this.movement) {
             this.movement.update(this, dt);
         }
@@ -216,12 +221,11 @@ export class Ball extends THREE.Group {
 
         // Prevent ball from entering collision sphere (car)
         if (collisionContext) {
-            const carPos = collisionContext;
             const boundaryRadius = 3;
-            const toBall = this.position.clone().sub(carPos);
-            if (toBall.length() < boundaryRadius) {
-                toBall.setLength(boundaryRadius);
-                this.setPosition(carPos.clone().add(toBall));
+            this._scratchVec3A.subVectors(this.position, collisionContext);
+            if (this._scratchVec3A.length() < boundaryRadius) {
+                this._scratchVec3A.setLength(boundaryRadius);
+                this.setPosition(this._scratchVec3B.addVectors(collisionContext, this._scratchVec3A));
             }
         }
 
@@ -241,7 +245,7 @@ export class Ball extends THREE.Group {
                 if (this.hitAccumulator > 0) {
                     this.hitAccumulator -= dt;
                 }
-                
+
                 const progress = Math.min(1, this.targetTimer / this.holdDurationSeconds);
                 const isFinalHit = progress >= 1;
 
@@ -279,7 +283,7 @@ export class Ball extends THREE.Group {
 
             return;
         }
-        
+
         // Non-slider balls are now damaged by the gun system (bullets),
         // while this ray branch remains only for slider-style hold targets.
         const allowBeamDamage = false;
@@ -309,7 +313,9 @@ export class Ball extends THREE.Group {
         } else {
             this.intersecting = false;
             this.justHit = false;
-            this.indicatorSphere.material.color.set(this.negative);
+            if (this.indicatorSphere?.material) {
+                this.indicatorSphere.material.color.set(this.negative);
+            }
             this.targetTimer = 0;
             this.hitAccumulator = 0;
             this.negativeColor();
@@ -354,42 +360,44 @@ export class Ball extends THREE.Group {
         }
         return intersection;
     }
-    
+
     updateCrosshairLocation(intersection, ray, upDir) {
         if (!this.reticleEnabled) {
             if (this.crosshair) this.crosshair.visible = false;
             return;
         }
         if (intersection && this.ball && this.crosshairUniforms) {
-            const localPoint = this.ball.worldToLocal(intersection.clone());
-            const centerDir = localPoint.clone().normalize();
+            // Reuse scratch vectors — no allocations
+            const localPoint = this.ball.worldToLocal(this._scratchVec3A.copy(intersection));
+            const centerDir = this._scratchVec3B.copy(localPoint).normalize();
             this.crosshairUniforms.centerDir.value.copy(centerDir);
 
             if (ray) {
-                const worldUp = upDir ? upDir.clone().normalize() : new THREE.Vector3(0, 1, 0);
-                let camRight = new THREE.Vector3().crossVectors(ray.direction, worldUp);
+                const worldUp = upDir ? this._scratchVec3C.copy(upDir).normalize() : this._scratchVec3C.set(0, 1, 0);
+                const camRight = this._scratchVec3D.crossVectors(ray.direction, worldUp);
                 if (camRight.lengthSq() < 1e-6) {
                     camRight.set(1, 0, 0);
                 } else {
                     camRight.normalize();
                 }
-                const camUp = new THREE.Vector3().crossVectors(camRight, ray.direction).normalize();
+                // camUp can reuse worldUp slot — worldUp not needed beyond here
+                const camUp = worldUp.crossVectors(camRight, ray.direction).normalize();
 
-                // Convert world-space camera basis to ball-local space so all
-                // reticle math stays in the same coordinate system.
-                const ballWorldQuat = new THREE.Quaternion();
-                this.ball.getWorldQuaternion(ballWorldQuat);
-                const worldToLocalQuat = ballWorldQuat.clone().invert();
-                camRight.applyQuaternion(worldToLocalQuat).normalize();
-                camUp.applyQuaternion(worldToLocalQuat).normalize();
+                this.ball.getWorldQuaternion(this._scratchQuat);
+                this._scratchQuat.invert();
+                camRight.applyQuaternion(this._scratchQuat).normalize();
+                camUp.applyQuaternion(this._scratchQuat).normalize();
 
-                const basisX = camRight.clone().sub(centerDir.clone().multiplyScalar(camRight.dot(centerDir)));
-                const basisY = camUp.clone().sub(centerDir.clone().multiplyScalar(camUp.dot(centerDir)));
+                // basisX = camRight projected onto the plane perpendicular to centerDir
+                const basisX = camRight.sub(this._scratchVec3A.copy(centerDir).multiplyScalar(camRight.dot(centerDir)));
+                const basisY = camUp.sub(this._scratchVec3A.copy(centerDir).multiplyScalar(camUp.dot(centerDir)));
 
                 if (basisX.lengthSq() < 1e-6 || basisY.lengthSq() < 1e-6) {
-                    const fallbackUp = Math.abs(centerDir.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
-                    basisX.copy(new THREE.Vector3().crossVectors(fallbackUp, centerDir).normalize());
-                    basisY.copy(new THREE.Vector3().crossVectors(centerDir, basisX).normalize());
+                    const fallbackUp = Math.abs(centerDir.y) > 0.9
+                        ? this._scratchVec3A.set(1, 0, 0)
+                        : this._scratchVec3A.set(0, 1, 0);
+                    basisX.crossVectors(fallbackUp, centerDir).normalize();
+                    basisY.crossVectors(centerDir, basisX).normalize();
                 } else {
                     basisX.normalize();
                     basisY.normalize();
@@ -419,20 +427,20 @@ export class Ball extends THREE.Group {
                 : 1;
             this.crosshairUniforms.crossSize.value = size;
             this.crosshairUniforms.barThickness.value = this._reticleBase.barThickness * sizeScale;
-            this.crosshairUniforms.gapRadius.value = this._reticleBase.gapRadius * sizeScale/2;
+            this.crosshairUniforms.gapRadius.value = this._reticleBase.gapRadius * sizeScale / 2;
             this.crosshairUniforms.edgeSoftness.value = this._reticleBase.edgeSoftness * sizeScale;
         }
     }
-    
-    isHit () {
+
+    isHit() {
         return this.justHit;
     }
-    
+
     /**
      * Returns true exactly once when this ball transitions to killed state.
      * @returns {boolean|undefined}
      */
-    isKilled () {
+    isKilled() {
         if (this.healthBarEnabled && this.alive && this.justHit && this.health <= 0) {
             this.alive = false;
             // Play sound BEFORE effects to ensure zero-latency audio feedback
@@ -493,7 +501,7 @@ export class Ball extends THREE.Group {
     playHitSoundOnce() {
         soundManager.playSound('hit', 0.1);
     }
-    
+
     playHitSound(dt) {
         if (this.hitAccumulator > 0) {
             this.hitAccumulator -= dt;
@@ -503,14 +511,16 @@ export class Ball extends THREE.Group {
             this.damage();
             this.hitAccumulator = 1 / this.dps;
         }
-    }   
+    }
 
     rainbowColor() {
         const rainbowColor = new THREE.Color();
         const hue = (performance.now() * 0.1 % 360) / 360;
         rainbowColor.setHSL(hue, 1, 0.5);
-        this.indicatorSphere.material.opacity = 0.05;
-        this.indicatorSphere.material.color.set(rainbowColor);
+        if (this.indicatorSphere?.material) {
+            this.indicatorSphere.material.opacity = 0.05;
+            this.indicatorSphere.material.color.set(rainbowColor);
+        }
     }
 
     _setBallEmissive(color, intensity) {
@@ -532,7 +542,7 @@ export class Ball extends THREE.Group {
             material.emissiveIntensity = intensity;
         }
     }
-    
+
     positiveColor() {
         // On hover, either swap ball material or enable an outer overlay effect.
         if (this._hoverApplyTo === 'overlay') {
@@ -545,8 +555,10 @@ export class Ball extends THREE.Group {
         } else if (this._hoverMaterial && this.ball.material !== this._hoverMaterial) {
             this.ball.material = this._hoverMaterial;
         }
-        this.indicatorSphere.material.opacity = 0.22;
-        this.indicatorSphere.material.color.set(this.activeGlowColor);
+        if (this.indicatorSphere?.material) {
+            this.indicatorSphere.material.opacity = 0.22;
+            this.indicatorSphere.material.color.set(this.activeGlowColor);
+        }
     }
 
     negativeColor() {
@@ -557,20 +569,22 @@ export class Ball extends THREE.Group {
         if (this._hoverOverlayMesh) {
             this._hoverOverlayMesh.visible = false;
         }
-        this.indicatorSphere.material.color.set(this.idleGlowColor);
-        this.indicatorSphere.material.opacity = 0.05;
+        if (this.indicatorSphere?.material) {
+            this.indicatorSphere.material.color.set(this.idleGlowColor);
+            this.indicatorSphere.material.opacity = 0.05;
+        }
     }
-    
+
     toggleHealthBar() {
         this.healthBarEnabled = !this.healthBarEnabled;
         this.updateHealthBarVisibility(false);
     }
-    
+
     enableHealthBar() {
         this.healthBarEnabled = true;
         this.updateHealthBarVisibility(false);
     }
-    
+
     disableHealthBar() {
         this.healthBarEnabled = false;
         this.healthBar.visible = false;
@@ -589,7 +603,7 @@ export class Ball extends THREE.Group {
     getRadius() {
         return this.radius;
     }
-    
+
     setRadius(newRadius) {
         this.radius = newRadius;
         // Update hitbox
@@ -599,12 +613,12 @@ export class Ball extends THREE.Group {
         // Update indicatorSphere geometry
         if (this.indicatorSphere) {
             this.indicatorSphere.geometry.dispose();
-            this.indicatorSphere.geometry = new THREE.SphereGeometry(newRadius + 0.1, 128, 128);
+            this.indicatorSphere.geometry = new THREE.SphereGeometry(newRadius + 0.1, 48, 48);
         }
         // Update crosshair geometry
         if (this.crosshair) {
             this.crosshair.geometry.dispose();
-            this.crosshair.geometry = new THREE.SphereGeometry(newRadius + 0.02, 128, 128);
+            this.crosshair.geometry = new THREE.SphereGeometry(newRadius + 0.02, 72, 72);
         }
         // Update healthBar position
         if (this.healthBar) {
@@ -620,30 +634,27 @@ export class Ball extends THREE.Group {
             this._hoverOverlayMesh.geometry = new THREE.SphereGeometry(newRadius * this._hoverOverlayScale, 128, 128);
         }
     }
-    
+
     updateHealthBar(camera) {
         if (!this.healthBar || !this.healthBar.visible) return;
-        
-        this.healthBar.position.set(0, 0, 0);
-        
-        const camZ = new THREE.Vector3(0, 0, 1).applyQuaternion(camera.quaternion).normalize();
-        const camX = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-        const cross = new THREE.Vector3().crossVectors(camZ, camX).normalize();
-        const offsetDistance = this.hitBox.radius * 1.5; 
-        const offset = cross.multiplyScalar(offsetDistance);
 
-        this.healthBar.position.copy(offset);
+        // Reuse scratch vectors to avoid per-frame allocations
+        const camZ = this._scratchVec3A.set(0, 0, 1).applyQuaternion(camera.quaternion).normalize();
+        const camX = this._scratchVec3B.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+        const cross = this._scratchVec3C.crossVectors(camZ, camX).normalize();
+        cross.multiplyScalar(this.hitBox.radius * 1.5);
+
+        this.healthBar.position.copy(cross);
         this.healthBar.updateScale(this.hitBox.radius);
-        
         this.healthBar.lookAt(camera.position);
     }
-    
+
     damage() {
         if (this.health <= 0) return;
         this.health -= this.damageAmount;
         this.healthBar.setHealth(this.health);
     }
-    
+
     /**
      * Resets state after a kill/respawn cycle.
      */
@@ -661,13 +672,13 @@ export class Ball extends THREE.Group {
         this.healthBar.setHealth(this.maxHealth);
         this.updateHealthBarVisibility(false);
     }
-    
+
     setHealth(health) {
         this.health = health;
         this.healthBar.setHealth(this.health);
         this.updateHealthBarVisibility(false);
     }
-    
+
     getHealth() {
         return this.health;
     }
@@ -778,7 +789,7 @@ export class Ball extends THREE.Group {
 
         if (applyTo === 'overlay') {
             this._hoverOverlayMesh = new THREE.Mesh(
-                new THREE.SphereGeometry(this.radius * this._hoverOverlayScale, 128, 128),
+                new THREE.SphereGeometry(this.radius * this._hoverOverlayScale, 24, 24),
                 material,
             );
             this._hoverOverlayMesh.visible = false;

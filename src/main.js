@@ -69,14 +69,14 @@ export function initRlDartApp(container, options = {}) {
   container.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('rgba(235, 235, 235, 1)');
+  scene.background = new THREE.Color(0x000000);
 
   const pmremGenerator = new THREE.PMREMGenerator(renderer);
   scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = 0.8;
   pmremGenerator.dispose();
 
-  const engine = new Engine(renderer, options);
+  const engine = new Engine(renderer, options, scene);
   scene.add(engine);
 
   const modeStateListener = typeof options.onModeStateChange === 'function'

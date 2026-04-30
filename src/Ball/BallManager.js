@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Ball } from './Ball';
 import { StripedBall } from './StripedBall.js';
 import { CollisionSystem } from './CollisionSystem';
+import { MovementRegistry } from './Movement/index.js';
 
 /**
  * Manages all Ball instances in the scene.
@@ -19,14 +20,9 @@ export class BallManager extends THREE.Group {
         /** @type {import('./Ball').Ball[]} */
         this.balls = [];
         this.selectedIndex = 0;
-        /**
-         * Event listeners keyed by event name.
-         * Events emitted by this manager:
-         * - hit: fired when at least one ball registers a hit this frame
-         * - killed: fired with the killed ball when a health bar reaches zero
-         * @type {Record<string, Array<(data?: any) => void>>}
-         */
         this.listeners = {};
+        // Pre-allocated scratch vector to avoid per-frame GC in findClosestBall
+        this._scratchVec3 = new THREE.Vector3();
     }
     
     /**
@@ -76,7 +72,7 @@ export class BallManager extends THREE.Group {
             return null;
         }
         this.balls.forEach(ball => {
-            const toBall = ball.position.clone().sub(ray.origin).normalize();
+            const toBall = this._scratchVec3.subVectors(ball.position, ray.origin).normalize();
             const dot = ray.direction.dot(toBall);
             if (dot > highestDot) {
                 highestDot = dot;
@@ -165,7 +161,13 @@ export class BallManager extends THREE.Group {
      * @param {Object} reticleObj
      */
     createBall(position, size, movementClass, healthObj, reticleObj = null, appearanceObj = null) {
-        const movementInstance = movementClass ? new movementClass() : null;
+        // Resolve movement class if it's a string name
+        let actualMovementClass = movementClass;
+        if (typeof movementClass === 'string') {
+            actualMovementClass = MovementRegistry[movementClass] || null;
+        }
+
+        const movementInstance = actualMovementClass ? new actualMovementClass() : null;
         const BallType = appearanceObj?.isStriped ? StripedBall : Ball;
         const ball = new BallType(position, size, movementInstance, healthObj, reticleObj, appearanceObj);
         this.balls.push(ball);

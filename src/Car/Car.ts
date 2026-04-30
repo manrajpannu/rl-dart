@@ -103,7 +103,7 @@ export class Car extends THREE.Group {
     this.add(this._rotationLine);
 
     this._torusGeometry = new THREE.TorusGeometry(0.6, 0.02, 64, 64);
-    this._torusMaterial = new THREE.MeshStandardMaterial({ color: 'magenta' });
+    this._torusMaterial = new THREE.MeshToonMaterial({ color: 'magenta' });
     this.torus = new THREE.Mesh(this._torusGeometry, this._torusMaterial);
     this.torus.visible = false;
     this.torus.rotation.x = degToRad(90);

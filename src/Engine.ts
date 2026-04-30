@@ -168,16 +168,28 @@ export class Engine extends THREE.Group {
   private _onKill: (ball?: Ball) => void;
   private _modeStateListeners: Set<(state: ModeState) => void>;
   private _challengePresets: Record<string, ChallengePreset>;
+  private _darkMode: boolean = false;
+  private _keyLight!: THREE.DirectionalLight;
+  private _fillLight!: THREE.DirectionalLight;
+  private _rimLight!: THREE.DirectionalLight;
+  private _stateEmitAccumulator: number = 0;
+  private _carUpDir: THREE.Vector3 = new THREE.Vector3();
 
    /**
    * @param renderer Active renderer instance used by UI wiring.
    * @param options Initialization options, including scenario config.
+   * @param scene The active THREE.Scene.
    */
-  constructor(renderer: THREE.WebGLRenderer, options: any = {}) {
+  constructor(renderer: THREE.WebGLRenderer, options: any = {}, private _scene?: THREE.Scene) {
     super();
 
     this._modeStateListeners = new Set();
     this.currentClosestBall = null;
+    this._darkMode = options.darkMode || false;
+    
+    if (this._scene) {
+      this._scene.background = new THREE.Color(this._darkMode ? 0x000000 : 0xfafafa);
+    }
     this._challengePresets = {
       Warmup: {
         numBalls: 1,
@@ -212,48 +224,49 @@ export class Engine extends THREE.Group {
       const ambientLight = new THREE.AmbientLight(0x000000);
       this.add(ambientLight);
 
-      const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
-      keyLight.position.set(0, 200, 0);
-      keyLight.castShadow = true;
-      keyLight.shadow.mapSize.set(2048, 2048);
-      keyLight.shadow.camera.near = 1;
-      keyLight.shadow.camera.far = 400;
-      if (keyLight.shadow.camera instanceof THREE.OrthographicCamera) {
-        keyLight.shadow.camera.left = -120;
-        keyLight.shadow.camera.right = 120;
-        keyLight.shadow.camera.top = 120;
-        keyLight.shadow.camera.bottom = -120;
+      this._keyLight = new THREE.DirectionalLight(0xffffff, this._darkMode ? 0.6 : 2.0);
+      this._keyLight.position.set(0, 200, 0);
+      this._keyLight.castShadow = true;
+      this._keyLight.shadow.mapSize.set(2048, 2048);
+      this._keyLight.shadow.camera.near = 1;
+      this._keyLight.shadow.camera.far = 400;
+      if (this._keyLight.shadow.camera instanceof THREE.OrthographicCamera) {
+        this._keyLight.shadow.camera.left = -120;
+        this._keyLight.shadow.camera.right = 120;
+        this._keyLight.shadow.camera.top = 120;
+        this._keyLight.shadow.camera.bottom = -120;
       }
-      // Normal bias is important on curved meshes to prevent shadow acne/banding.
-      keyLight.shadow.bias = -0.00002;
-      keyLight.shadow.normalBias = 0.02;
-      this.add(keyLight);
+      this._keyLight.shadow.bias = -0.00002;
+      this._keyLight.shadow.normalBias = 0.02;
+      this.add(this._keyLight);
 
-      const fillLight = new THREE.DirectionalLight(0xffffff, 3.5);
-      fillLight.position.set(100, 200, 100);
-      this.add(fillLight);
+      this._fillLight = new THREE.DirectionalLight(0xffffff, this._darkMode ? 0.8 : 3.5);
+      this._fillLight.position.set(100, 200, 100);
+      this.add(this._fillLight);
 
-      const rimLight = new THREE.DirectionalLight(0xffffff, 2.5);
-      rimLight.position.set(-100, -200, -100);
-      this.add(rimLight);
+      this._rimLight = new THREE.DirectionalLight(0xffffff, this._darkMode ? 0.5 : 2.5);
+      this._rimLight.position.set(-100, -200, -100);
+      this.add(this._rimLight);
     }
 
     this.car = new Car(this);
     this.add(this.car);
 
-    this.sky = new ToonSky();
+    this.sky = new ToonSky({ darkMode: this._darkMode });
     this.add(this.sky);
 
     this.BallManager = new BallManager();
     this.add(this.BallManager);
 
     this.map = new GameMap();
+    this.map.setDarkMode(this._darkMode);
     this.map.gen();
     this.map.position.y = -15;
     // this.add(this.map);
 
     this.controller = new Controller();
 
+    const modeName = options.modeName || 'Challenge';
     const challengeConfig = options.challengeConfig || {
       numBalls: 1,
       health: 3,
@@ -265,8 +278,11 @@ export class Engine extends THREE.Group {
       reticleColor: '#ff2222',
     };
 
-    this.currentMode = new ChallengeMode(challengeConfig);
-
+    if (modeName === 'Freeplay') {
+      this.currentMode = new FreeplayMode(challengeConfig);
+    } else {
+      this.currentMode = new ChallengeMode(challengeConfig);
+    }
 
     this.currentMode.start(this.BallManager, { car: this.car });
 
@@ -315,14 +331,20 @@ export class Engine extends THREE.Group {
     if (!this.currentMode.active && this.currentMode.shouldPauseGameplay?.()) {
       this.car.setNeutralState();
       this.currentMode.update(dt, { boostHeld: false, ballManager: this.BallManager });
-      this._emitModeState();
+      // Throttle: emit paused state at ~15Hz only
+      this._stateEmitAccumulator += dt;
+      if (this._stateEmitAccumulator >= 0.067) {
+        this._stateEmitAccumulator = 0;
+        this._emitModeState();
+      }
       return;
     }
 
     const bulletState = this.car?.getBulletState ? this.car.getBulletState() : null;
     const bulletsEnabled = Boolean(bulletState?.enabled);
-    const carUpDir = new THREE.Vector3(0, 1, 0).applyQuaternion(this.car.quaternion).normalize();
-    this.BallManager.update(this.car.getForwardVector(), boostHeld, dt, carUpDir, {
+    // Reuse pre-allocated vector — no GC per frame
+    this._carUpDir.set(0, 1, 0).applyQuaternion(this.car.quaternion).normalize();
+    this.BallManager.update(this.car.getForwardVector(), boostHeld, dt, this._carUpDir, {
       bulletsEnabled,
       carPosition: this.car.position,
     });
@@ -342,9 +364,12 @@ export class Engine extends THREE.Group {
     this.car.updateCamera(this.currentClosestBall ? this.currentClosestBall.position : null, ballCam, dt);
     this.currentMode.update(dt, { boostHeld, ballManager: this.BallManager });
 
-    // drawDot(yaw, -pitch);
-    // drawDeadzone(yaw, -pitch);
-    this._emitModeState();
+    // Throttle state emission to ~30Hz (every 33ms) instead of every physics step (~136Hz)
+    this._stateEmitAccumulator += dt;
+    if (this._stateEmitAccumulator >= 0.033) {
+      this._stateEmitAccumulator = 0;
+      this._emitModeState();
+    }
   }
 
   getCamera(): THREE.Camera {
@@ -428,6 +453,21 @@ export class Engine extends THREE.Group {
     }
     this.currentClosestBall = null;
     this._emitModeState();
+  }
+
+  setDarkMode(isDark: boolean): void {
+    this._darkMode = isDark;
+    this.sky?.setDarkMode(isDark);
+    this.map?.setDarkMode(isDark);
+    
+    if (this._keyLight) this._keyLight.intensity = isDark ? 0.6 : 2.0;
+    if (this._fillLight) this._fillLight.intensity = isDark ? 0.8 : 3.5;
+    if (this._rimLight) this._rimLight.intensity = isDark ? 0.5 : 2.5;
+
+    if (this._scene) {
+      this._scene.background = new THREE.Color(isDark ? 0x000000 : 0xfafafa);
+      this._scene.environmentIntensity = isDark ? 0.2 : 0.8;
+    }
   }
 
   stopCurrentMode(): void {

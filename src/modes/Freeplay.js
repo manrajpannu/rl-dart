@@ -8,7 +8,6 @@ import * as THREE from 'three';
  * @property {any} [movement=null]
  * @property {number | number[]} [size=1.5]
  * @property {boolean} [spawnOverlapping=true]
- * @property {boolean} [showHud=true]
  * @property {boolean} [holdSliderEnabled=false]
  * @property {number} [holdSliderSeconds=2.5]
  * @property {number} [missSampleRate=5]
@@ -54,7 +53,6 @@ class FreeplayMode {
         movement = null,
         size = 1.5,
         spawnOverlapping = false,
-        showHud = true,
         holdSliderEnabled = false,
         holdSliderSeconds = 2.5,
         missSampleRate = 5,
@@ -94,7 +92,6 @@ class FreeplayMode {
         this.defaultMovement = movement;
         this.defaultSize = size;
         this.spawnOverlapping = spawnOverlapping;
-        this.showHud = Boolean(showHud);
         this.holdSliderEnabled = holdSliderEnabled;
         this.holdSliderSeconds = holdSliderSeconds;
         this.missSampleRate = missSampleRate;
@@ -133,8 +130,6 @@ class FreeplayMode {
 
         this._ballManager = null;
         this._car = null;
-        this._hudRoot = null;
-        this._hudFields = null;
         this._elapsedSeconds = 0;
         this._shots = 0;
         this._misses = 0;
@@ -145,142 +140,62 @@ class FreeplayMode {
         this._killSamples = 0;
         this._wasBoostHeld = false;
         this._missAccumulator = 0;
+        this._ammoHudFields = null;
     }
 
-    static _clearOverlay() {
-        if (typeof document === 'undefined') return;
-        const overlay = document.getElementById('freeplay-overlay');
-        if (overlay) overlay.remove();
-    }
-
-    static _ensureOverlay() {
+    static _ensureAmmoHud() {
         if (typeof document === 'undefined') return null;
-
-        const overlayClassName = 'freeplay-overlay pointer-events-none fixed inset-x-0 top-[calc(var(--header-height)+10px)] z-[10020] mx-auto w-fit';
-        const overlayMarkup = `
-                <div class="freeplay-panel relative w-[min(320px,calc(100vw-20px))] max-sm:w-[min(290px,calc(100vw-14px))] overflow-hidden bg-[rgba(0,0,0,0.3)] p-[10px]">
-                    <div class="freeplay-panel__header relative z-[1] mb-2 grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-3 py-2 text-center">
-                        <div class="freeplay-panel__title font-sans text-[13px] font-bold tracking-[0.14em] uppercase text-white">freeplay</div>
-                        <div class="freeplay-panel__subtitle bg-[rgba(0,0,0,0.3)] px-2 py-1 font-sans text-[8px] font-bold tracking-[0.16em] uppercase text-white">session stats</div>
-                    </div>
-                    <div class="freeplay-stats relative z-[1] grid gap-[5px]">
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">session</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="session">00:00:00</span></div>
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">kills</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="kills">0</span></div>
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">kps</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="kps">0.00</span></div>
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">accuracy</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="accuracy">0/0 (0.0%)</span></div>
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">damage</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="damage">0/0 (0.0%)</span></div>
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">spm</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="spm">0</span></div>
-                        <div class="freeplay-stat grid justify-items-center gap-1 bg-[rgba(0,0,0,0.3)] px-2 py-[6px] text-center"><span class="freeplay-stat__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">avg ttk</span><span class="freeplay-stat__value px-1 py-[1px] font-sans text-[12px] font-bold tracking-[0.04em] uppercase text-white" data-stat="ttk">0.00s</span></div>
-                        <div class="freeplay-ammo is-hidden grid gap-[6px] bg-[rgba(0,0,0,0.3)] p-[6px] text-center" data-stat="ammo">
-                            <div class="freeplay-ammo__row grid justify-items-center gap-1">
-                                <span class="freeplay-ammo__label font-sans text-[8px] font-bold tracking-[0.18em] uppercase text-white">ammo</span>
-                                <span class="freeplay-ammo__value px-[6px] py-[1px] font-sans text-[12px] font-bold tracking-[0.08em] uppercase text-white" data-stat="ammo-value">0</span>
-                            </div>
-                            <div class="freeplay-ammo__bar relative h-2 overflow-hidden bg-[rgba(0,0,0,0.3)]">
-                                <div class="freeplay-ammo__bar-fill absolute inset-y-0 left-0 w-0 bg-[var(--secondary)] transition-[width] duration-100 ease-out" data-stat="ammo-fill"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-
-        let overlay = document.getElementById('freeplay-overlay');
+        let overlay = document.getElementById('ammo-hud');
         if (!overlay) {
             overlay = document.createElement('div');
-            overlay.id = 'freeplay-overlay';
+            overlay.id = 'ammo-hud';
+            overlay.className = 'pointer-events-none fixed inset-0 z-[10050] font-sans font-bold uppercase text-center text-white';
+            overlay.innerHTML = `
+                <div class="challenge-hud__ammo is-hidden absolute inset-x-0 bottom-10 mx-auto inline-flex w-fit min-w-[220px] items-center justify-center gap-3 bg-[rgba(0,0,0,0.3)] px-5 py-3 text-center text-[20px] font-bold uppercase tracking-[0.12em] rounded-xl" data-challenge="ammo">
+                    <span class="challenge-hud__ammo-icon inline-block size-4 rounded-full bg-white" aria-hidden="true"></span>
+                    <span class="challenge-hud__ammo-text font-bold uppercase" data-challenge="ammo-value">0</span>
+                </div>
+            `;
+            const mount = document.getElementById('three-container') || document.body;
+            mount.appendChild(overlay);
         }
-
-        if (overlay.dataset.hudSkinVersion !== 'v3') {
-            overlay.className = overlayClassName;
-            overlay.innerHTML = overlayMarkup;
-            overlay.dataset.hudSkinVersion = 'v3';
-        } else {
-            overlay.className = overlayClassName;
-        }
-
-        if (!overlay.parentElement) {
-            document.body.appendChild(overlay);
-        }
-
         return overlay;
     }
 
-    _formatSessionTime(totalSeconds) {
-        const wholeSeconds = Math.max(0, Math.floor(totalSeconds));
-        const hours = Math.floor(wholeSeconds / 3600);
-        const minutes = Math.floor((wholeSeconds % 3600) / 60);
-        const seconds = wholeSeconds % 60;
-        return [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':');
+    static _clearAmmoHud() {
+        if (typeof document === 'undefined') return;
+        const overlay = document.getElementById('ammo-hud');
+        if (overlay) overlay.remove();
     }
 
-    _syncHud() {
-        if (!this.showHud) return;
-        if (!this._hudFields) {
-            this._initHud();
+    _initAmmoHud() {
+        const overlay = FreeplayMode._ensureAmmoHud();
+        if (!overlay) return;
+        this._ammoHudFields = {
+            ammo: overlay.querySelector('[data-challenge="ammo"]'),
+            ammoValue: overlay.querySelector('[data-challenge="ammo-value"]'),
+        };
+    }
+
+    _syncAmmoHud() {
+        if (!this._ammoHudFields) {
+            this._initAmmoHud();
         }
-        if (!this._hudFields) return;
-
-        const elapsed = Math.max(0, this._elapsedSeconds);
-        const kps = elapsed > 0 ? this._kills / elapsed : 0;
-        const accuracyPercent = this._shots > 0 ? (this.hits / this._shots) * 100 : 0;
-        const damagePercent = this._damagePossible > 0 ? (this._damageDealt / this._damagePossible) * 100 : 0;
-        const spm = elapsed > 0 ? Math.round((this.score / elapsed) * 60) : 0;
-        const avgTtk = this._killSamples > 0 ? this._totalKillTime / this._killSamples : 0;
-
-        this._hudFields.session.textContent = this._formatSessionTime(elapsed);
-        this._hudFields.kills.textContent = String(this._kills);
-        this._hudFields.kps.textContent = kps.toFixed(2);
-        this._hudFields.accuracy.textContent = `${this.hits}/${this._shots} (${accuracyPercent.toFixed(1)}%)`;
-        this._hudFields.damage.textContent = `${Math.round(this._damageDealt)}/${Math.round(this._damagePossible)} (${damagePercent.toFixed(1)}%)`;
-        this._hudFields.spm.textContent = String(spm);
-        this._hudFields.ttk.textContent = `${avgTtk.toFixed(2)}s`;
-
+        if (!this._ammoHudFields) return;
+        
         const bulletState = this._car?.getBulletState ? this._car.getBulletState() : null;
         const ammoEnabled = Boolean(bulletState?.enabled);
-        const ammoMax = Number(bulletState?.maxAmmo ?? 0);
-        const ammoValue = Number(bulletState?.ammo ?? 0);
-        const ammoVisible = ammoEnabled && Number.isFinite(ammoMax) && ammoMax > 0;
-
-        if (this._hudFields.ammo) {
-            this._hudFields.ammo.classList.toggle('is-hidden', !ammoVisible);
-            this._hudFields.ammo.style.display = ammoVisible ? '' : 'none';
+        const hasFiniteAmmo = Number.isFinite(Number(bulletState?.maxAmmo));
+        const showAmmoHud = ammoEnabled && hasFiniteAmmo;
+        
+        const fields = this._ammoHudFields;
+        if (fields.ammo) {
+            fields.ammo.classList.toggle('is-hidden', !showAmmoHud);
+            fields.ammo.style.display = showAmmoHud ? '' : 'none';
         }
-
-        if (ammoVisible && this._hudFields.ammoValue && this._hudFields.ammoFill) {
-            this._hudFields.ammoValue.textContent = String(Math.max(0, Math.floor(ammoValue)));
-            if (ammoValue <= 0) {
-                this._hudFields.ammoFill.classList.add('is-reloading');
-                this._hudFields.ammoFill.classList.add('animate-pulse');
-                this._hudFields.ammoFill.style.width = '100%';
-                this._hudFields.ammoFill.style.background = 'repeating-linear-gradient(90deg, var(--secondary) 0 8px, var(--accent) 8px 16px)';
-            } else {
-                this._hudFields.ammoFill.classList.remove('is-reloading');
-                this._hudFields.ammoFill.classList.remove('animate-pulse');
-                const ratio = Math.min(1, Math.max(0, ammoValue / ammoMax));
-                this._hudFields.ammoFill.style.width = `${(ratio * 100).toFixed(2)}%`;
-                this._hudFields.ammoFill.style.background = 'var(--secondary)';
-            }
+        if (showAmmoHud && fields.ammoValue) {
+            fields.ammoValue.textContent = `${Math.max(0, Math.floor(bulletState?.ammo ?? 0))}`;
         }
-    }
-
-    _initHud() {
-        if (!this.showHud) return;
-        const overlay = FreeplayMode._ensureOverlay();
-        if (!overlay) return;
-
-        const query = (selector) => overlay.querySelector(selector);
-        this._hudRoot = overlay;
-        this._hudFields = {
-            session: query('[data-stat="session"]'),
-            kills: query('[data-stat="kills"]'),
-            kps: query('[data-stat="kps"]'),
-            accuracy: query('[data-stat="accuracy"]'),
-            damage: query('[data-stat="damage"]'),
-            spm: query('[data-stat="spm"]'),
-            ttk: query('[data-stat="ttk"]'),
-            ammo: query('[data-stat="ammo"]'),
-            ammoValue: query('[data-stat="ammo-value"]'),
-            ammoFill: query('[data-stat="ammo-fill"]'),
-        };
     }
 
     _trackSpawn(ball) {
@@ -294,7 +209,6 @@ class FreeplayMode {
         this._misses += 1;
         this._damagePossible += 1;
         this.score += this.pointsPerMiss;
-        // Optionally cap score at 0 if we don't want negative scores
         if (this.score < 0) this.score = 0;
     }
 
@@ -410,7 +324,6 @@ class FreeplayMode {
             }
 
             if (!pos) {
-                // If no valid spawn spot exists, skip this ball.
                 continue;
             }
 
@@ -463,7 +376,8 @@ class FreeplayMode {
         }
         this._wasBoostHeld = boostHeld;
 
-        this._syncHud();
+        this._syncAmmoHud();
+
         return dt;
     }
 
@@ -489,9 +403,6 @@ class FreeplayMode {
         this._wasBoostHeld = false;
         this._missAccumulator = 0;
 
-        this._hudRoot = null;
-        this._hudFields = null;
-
         this.setCarVisuals(this._car);
 
         if (this._car) {
@@ -503,13 +414,10 @@ class FreeplayMode {
             }
         }
 
+        this._initAmmoHud();
+        this._syncAmmoHud();
+
         this.createBalls(BallManager);
-        if (this.showHud) {
-            this._initHud();
-            this._syncHud();
-        } else {
-            FreeplayMode._clearOverlay();
-        }
     }
 
     stop() {
@@ -524,14 +432,13 @@ class FreeplayMode {
             }
         }
         this._car = null;
-        this._hudRoot = null;
-        this._hudFields = null;
+        this._ammoHudFields = null;
+        FreeplayMode._clearAmmoHud();
     }
 
     onMiss() {
         if (!this.active) return;
         this._registerMiss();
-        this._syncHud();
     }
 
     onHit(ball) {
@@ -545,7 +452,6 @@ class FreeplayMode {
         if (this.autoBulletReload && !ball?.holdSliderEnabled && this._car && typeof this._car.reloadBullets === 'function') {
             this._car.reloadBullets(false);
         }
-        this._syncHud();
     }
 
     /**
@@ -595,10 +501,7 @@ class FreeplayMode {
                 this._trackSpawn(ball);
             }
         }
-
-        this._syncHud();
     }
 }
 
 export default FreeplayMode;
-
