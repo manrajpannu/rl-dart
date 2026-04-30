@@ -1,5 +1,10 @@
 # rl-dart (Rocket-League: Directional-Air-Roll-Trainer)
 
+> [!IMPORTANT]
+> **This repository is deprecated.**
+> The project has moved to **[airdribble.net](https://airdribble.net)**.
+> You can find the new repository at **[github.com/manrajpannu/airdribble](https://github.com/manrajpannu/airdribble)**.
+
 A Rocket League air roll trainer and visualization tool. This project helps players practice and visualize air roll mechanics, featuring a customizable car model, ball, and camera system.
 
 [Live demo](https://manrajpannu.github.io/rl-dart/)
